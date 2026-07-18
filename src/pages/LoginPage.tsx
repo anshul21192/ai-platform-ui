@@ -216,10 +216,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 control={
                   <Checkbox
                     size="small"
-                    sx={{
-                      "&.Mui-checked": { color: "text.primary" },
-                      color: "grey.300",
-                    }}
                   />
                 }
                 label={
@@ -249,13 +245,13 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               onClick={onLogin}
               sx={{
                 height: 48,
-                bgcolor: "grey.800",
+                // bgcolor: "grey.800",
                 textTransform: "none",
                 fontSize: 16,
                 fontWeight: 500,
                 borderRadius: "8px",
                 boxShadow: "none",
-                "&:hover": { bgcolor: "grey.900", boxShadow: "none" },
+                "&:hover": { boxShadow: "none" },
               }}
             >
               Sign In

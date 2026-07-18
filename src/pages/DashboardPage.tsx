@@ -4,10 +4,9 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import GroupIcon from "@mui/icons-material/Group";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import WifiIcon from "@mui/icons-material/Wifi";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
+import StatCard from "../components/StatCard";
 import TransactionTable from "../components/TransactionTable";
 import type { Transaction } from "../components/TransactionTable";
 
@@ -111,55 +110,7 @@ export default function DashboardPage() {
         {/* Stat Cards */}
         {statCards.map((card) => (
           <Grid key={card.title} size={{ md: 6, lg: 3 }}>
-            <Box
-              sx={{
-                bgcolor: "background.paper",
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: "14px",
-                p: 3.125,
-                display: "flex",
-                flexDirection: "column",
-                gap: 5,
-              }}
-            >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "10px",
-                    bgcolor: card.iconBgKey,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    "& svg": { fontSize: 24 },
-                  }}
-                >
-                  {card.icon}
-                </Box>
-                {card.positive !== undefined && card.change !== undefined && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    {card.positive ? (
-                      <ArrowUpwardIcon sx={{ fontSize: 16, color: "success.dark" }} />
-                    ) : (
-                      <ArrowDownwardIcon sx={{ fontSize: 16, color: "error.main" }} />
-                    )}
-                    <Typography sx={{ fontSize: 14, color: card.positive ? "success.dark" : "error.main" }}>
-                      {card.change}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 24, fontWeight: 600, color: "text.primary", lineHeight: "32px", letterSpacing: "0.0703px" }}>
-                  {card.value}
-                </Typography>
-                <Typography sx={{ fontSize: 14, color: "text.secondary", lineHeight: "20px", mt: 0.5 }}>
-                  {card.title}
-                </Typography>
-              </Box>
-            </Box>
+            <StatCard {...card} />
           </Grid>
         ))}
 

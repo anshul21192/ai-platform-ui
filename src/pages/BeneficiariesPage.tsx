@@ -1,27 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Button,
   TextField,
-  Avatar,
-  IconButton,
   InputAdornment,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
-  useTheme,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EmailIcon from "@mui/icons-material/Email";
-import PhoneIcon from "@mui/icons-material/Phone";
-import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import BeneficiaryCard from "../components/BeneficiaryCard";
+import { useBeneficiary } from "../contexts/BeneficiaryContext";
 
 interface Beneficiary {
   id: number;
@@ -34,14 +29,14 @@ interface Beneficiary {
   gradient: string;
 }
 
-const beneficiaries: Beneficiary[] = [
+const initialBeneficiaries: Beneficiary[] = [
   {
     id: 1,
     name: "John Smith",
     initials: "JS",
     email: "john@example.com",
     phone: "+1 (555) 123-4567",
-    bank: "Chase Bank",
+    bank: "JPMorgan Chase",
     account: "****1234",
     gradient: "linear-gradient(135deg, #2b7fff 0%, #155dfc 100%)",
   },
@@ -81,7 +76,7 @@ const beneficiaries: Beneficiary[] = [
     initials: "DW",
     email: "david@example.com",
     phone: "+1 (555) 567-8901",
-    bank: "US Bank",
+    bank: "Bank of America",
     account: "****7890",
     gradient: "linear-gradient(135deg, #ff6900 0%, #f54900 100%)",
   },
@@ -91,7 +86,7 @@ const beneficiaries: Beneficiary[] = [
     initials: "JM",
     email: "jessica@example.com",
     phone: "+1 (555) 678-9012",
-    bank: "TD Bank",
+    bank: "Deutsche Bank",
     account: "****2345",
     gradient: "linear-gradient(135deg, #00bba7 0%, #009689 100%)",
   },
@@ -100,14 +95,48 @@ const beneficiaries: Beneficiary[] = [
 export default function BeneficiariesPage() {
   const [search, setSearch] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const theme = useTheme();
+  const [menuTarget, setMenuTarget] = useState<Beneficiary | null>(null);
+  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(initialBeneficiaries);
+  const { navigateToAdd, navigateToEdit } = useBeneficiary();
 
-  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>) => {
+  useEffect(() => {
+    const handleSave = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setBeneficiaries((prev) => {
+        const existing = prev.find((b) => b.id === detail.id);
+        if (existing) {
+          return prev.map((b) => (b.id === detail.id ? { ...b, ...detail } : b));
+        }
+        const newId = Math.max(0, ...prev.map((b) => b.id)) + 1;
+        return [...prev, { ...detail, id: newId }];
+      });
+    };
+    window.addEventListener("beneficiary-saved", handleSave);
+    return () => window.removeEventListener("beneficiary-saved", handleSave);
+  }, []);
+
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, beneficiary: Beneficiary) => {
     setMenuAnchor(e.currentTarget);
+    setMenuTarget(beneficiary);
   };
 
   const handleMenuClose = () => {
     setMenuAnchor(null);
+    setMenuTarget(null);
+  };
+
+  const handleEdit = () => {
+    if (menuTarget) {
+      navigateToEdit(menuTarget);
+    }
+    handleMenuClose();
+  };
+
+  const handleDelete = () => {
+    if (menuTarget) {
+      setBeneficiaries((prev) => prev.filter((b) => b.id !== menuTarget.id));
+    }
+    handleMenuClose();
   };
 
   const filtered = beneficiaries.filter(
@@ -155,8 +184,8 @@ export default function BeneficiariesPage() {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
+              onClick={navigateToAdd}
               sx={{
-                bgcolor: "primary.main",
                 textTransform: "none",
                 borderRadius: "8px",
                 px: 2,
@@ -165,7 +194,6 @@ export default function BeneficiariesPage() {
                 fontWeight: 500,
                 lineHeight: "20px",
                 letterSpacing: "-0.1504px",
-                "&:hover": { bgcolor: "primary.dark" },
               }}
             >
               Add Beneficiary
@@ -175,212 +203,45 @@ export default function BeneficiariesPage() {
 
         {/* Search */}
         <Grid size={12}>
-          <Box
+          <TextField
+            fullWidth
+            placeholder="Search beneficiaries..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            variant="outlined"
             sx={{
-              bgcolor: "background.paper",
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: "14px",
-              p: 0,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "14px",
+                bgcolor: "grey.0",
+                fontSize: 14,
+                lineHeight: "normal",
+                letterSpacing: "-0.1504px",
+                "& fieldset": { border: "none" },
+                "&:hover fieldset": { border: "none" },
+                "&.Mui-focused fieldset": { border: "none" },
+              },
+              "& .MuiInputBase-input::placeholder": {
+                color: "grey.600",
+                opacity: 1,
+              },
+              "& .MuiInputBase-input": { py: "7px" },
             }}
-          >
-            <TextField
-              fullWidth
-              placeholder="Search beneficiaries..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "14px",
-                  bgcolor: "grey.0",
-                  fontSize: 14,
-                  lineHeight: "normal",
-                  letterSpacing: "-0.1504px",
-                  "& fieldset": { border: "none" },
-                  "&:hover fieldset": { border: "none" },
-                  "&.Mui-focused fieldset": { border: "none" },
-                },
-                "& .MuiInputBase-input::placeholder": {
-                  color: "grey.600",
-                  opacity: 1,
-                },
-                "& .MuiInputBase-input": { py: "7px" },
-              }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "grey.600", fontSize: 20 }} />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Box>
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "grey.600", fontSize: 20 }} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
         </Grid>
 
         {/* Beneficiary Cards */}
         {filtered.map((b) => (
           <Grid key={b.id} size={{ md: 6, lg: 4 }}>
-            <Box
-              sx={{
-                bgcolor: "background.paper",
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: "14px",
-                p: 3,
-                display: "flex",
-                flexDirection: "column",
-                gap: 3.25,
-                height: "100%",
-                boxSizing: "border-box",
-              }}
-            >
-              {/* Avatar + Menu */}
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Avatar
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    background: b.gradient,
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "-0.4492px",
-                  }}
-                >
-                  {b.initials}
-                </Avatar>
-                <IconButton
-                  size="small"
-                  sx={{ width: 36, height: 36, borderRadius: "10px" }}
-                  onClick={(e) => handleMenuOpen(e)}
-                >
-                  <MoreVertIcon sx={{ fontSize: 20, color: "grey.700" }} />
-                </IconButton>
-              </Box>
-
-              {/* Name */}
-              <Typography
-                sx={{
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: "text.primary",
-                  lineHeight: "28px",
-                  letterSpacing: "-0.4395px",
-                }}
-              >
-                {b.name}
-              </Typography>
-
-              {/* Details */}
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                }}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <EmailIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      color: "text.secondary",
-                      lineHeight: "20px",
-                      letterSpacing: "-0.1504px",
-                    }}
-                  >
-                    {b.email}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <PhoneIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      color: "text.secondary",
-                      lineHeight: "20px",
-                      letterSpacing: "-0.1504px",
-                    }}
-                  >
-                    {b.phone}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <AccountBalanceIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      color: "text.secondary",
-                      lineHeight: "20px",
-                      letterSpacing: "-0.1504px",
-                    }}
-                  >
-                    {b.bank}
-                  </Typography>
-                </Box>
-                <Typography
-                  sx={{
-                    fontSize: 14,
-                    color: "text.secondary",
-                    lineHeight: "20px",
-                    letterSpacing: "-0.1504px",
-                  }}
-                >
-                  <Box component="span" sx={{ fontWeight: 500 }}>
-                    Account:
-                  </Box>{" "}
-                  {b.account}
-                </Typography>
-              </Box>
-
-              {/* Actions */}
-              <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  sx={{
-                    bgcolor: "primary.main",
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    height: 32,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    lineHeight: "20px",
-                    letterSpacing: "-0.1504px",
-                    "&:hover": { bgcolor: "primary.dark" },
-                  }}
-                >
-                  Send Money
-                </Button>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  sx={{
-                    color: "text.primary",
-                    borderColor: "divider",
-                    textTransform: "none",
-                    borderRadius: "8px",
-                    height: 32,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    lineHeight: "20px",
-                    letterSpacing: "-0.1504px",
-                    "&:hover": {
-                      borderColor: "grey.300",
-                      bgcolor: "grey.0",
-                    },
-                  }}
-                >
-                  Request Money
-                </Button>
-              </Box>
-            </Box>
+            <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} />
           </Grid>
         ))}
 
@@ -401,7 +262,7 @@ export default function BeneficiariesPage() {
             },
           }}
         >
-          <MenuItem onClick={handleMenuClose}>
+          <MenuItem onClick={handleEdit}>
             <ListItemIcon>
               <EditIcon fontSize="small" sx={{ color: "grey.700" }} />
             </ListItemIcon>
@@ -410,7 +271,7 @@ export default function BeneficiariesPage() {
               slotProps={{ primary: { sx: { fontSize: 14, color: "grey.700" } } }}
             />
           </MenuItem>
-          <MenuItem onClick={handleMenuClose}>
+          <MenuItem onClick={handleDelete}>
             <ListItemIcon>
               <DeleteIcon fontSize="small" sx={{ color: "error.main" }} />
             </ListItemIcon>
