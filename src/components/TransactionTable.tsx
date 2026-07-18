@@ -1,4 +1,4 @@
-import { Box, Typography, Avatar, Table, TableHead, TableBody, TableRow, TableCell } from "@mui/material";
+import { Box, Typography, Avatar, Table, TableHead, TableBody, TableRow, TableCell, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 
@@ -8,7 +8,8 @@ export interface Transaction {
   status: string;
   amount: string;
   positive: boolean;
-  iconBg: string;
+  iconBgKey?: string;
+  iconBg?: string;
 }
 
 interface TransactionTableProps {
@@ -17,14 +18,28 @@ interface TransactionTableProps {
 }
 
 export default function TransactionTable({ title, transactions }: TransactionTableProps) {
+  const theme = useTheme();
+
+  const resolveColor = (key: string): string => {
+    const parts = key.split(".");
+    if (parts.length === 2) {
+      const [group, shade] = parts;
+      const paletteGroup = (theme.palette as unknown as Record<string, unknown>)[group];
+      if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as Record<string, string>)) {
+        return (paletteGroup as Record<string, string>)[shade];
+      }
+    }
+    return key;
+  };
+
   return (
-    <Box sx={{ bgcolor: "white", border: "1px solid #e5e7eb", borderRadius: "14px", p: 3 }}>
-      <Typography sx={{ fontSize: 18, fontWeight: 600, color: "#101828", lineHeight: "28px", mb: 3 }}>
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3 }}>
+      <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
         {title}
       </Typography>
       <Table sx={{ width: "100%" }}>
         <TableHead>
-          <TableRow sx={{ borderBottom: "1px solid #e5e7eb" }}>
+          <TableRow sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
             {["Transaction", "Date", "Status", "Amount"].map((h) => (
               <TableCell
                 key={h}
@@ -34,7 +49,7 @@ export default function TransactionTable({ title, transactions }: TransactionTab
                   px: 2,
                   fontSize: 14,
                   fontWeight: 500,
-                  color: "#364153",
+                  color: "grey.700",
                   border: "none",
                 }}
               >
@@ -45,7 +60,7 @@ export default function TransactionTable({ title, transactions }: TransactionTab
         </TableHead>
         <TableBody>
           {transactions.map((tx, i) => (
-            <TableRow key={i} sx={{ borderBottom: "1px solid #f3f4f6" }}>
+            <TableRow key={i} sx={{ borderBottom: `1px solid ${theme.palette.grey[100]}` }}>
               <TableCell sx={{ py: 2, px: 2, border: "none" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <Avatar
@@ -53,19 +68,19 @@ export default function TransactionTable({ title, transactions }: TransactionTab
                       width: 40,
                       height: 40,
                       borderRadius: "50%",
-                      bgcolor: tx.iconBg,
-                      color: tx.positive ? "#16a34a" : "#dc2626",
+                      bgcolor: tx.iconBg ?? (tx.iconBgKey ? resolveColor(tx.iconBgKey) : theme.palette.grey[100]),
+                      color: tx.positive ? "success.dark" : "error.main",
                       "& svg": { fontSize: 20 },
                     }}
                   >
                     {tx.positive ? <AddIcon /> : <RemoveIcon />}
                   </Avatar>
-                  <Typography sx={{ fontSize: 14, color: "#101828" }}>
+                  <Typography sx={{ fontSize: 14, color: "text.primary" }}>
                     {tx.name}
                   </Typography>
                 </Box>
               </TableCell>
-              <TableCell sx={{ py: 2, px: 2, fontSize: 14, color: "#4a5565", border: "none" }}>
+              <TableCell sx={{ py: 2, px: 2, fontSize: 14, color: "text.secondary", border: "none" }}>
                 {tx.date}
               </TableCell>
               <TableCell sx={{ py: 2, px: 2, border: "none" }}>
@@ -75,8 +90,8 @@ export default function TransactionTable({ title, transactions }: TransactionTab
                     px: 1.25,
                     py: 0.375,
                     borderRadius: "50px",
-                    bgcolor: tx.status === "completed" ? "#dcfce7" : "#fef9c2",
-                    color: tx.status === "completed" ? "#016630" : "#894b00",
+                    bgcolor: tx.status === "completed" ? "success.light" : "warning.light",
+                    color: tx.status === "completed" ? "success.dark" : "warning.dark",
                     fontSize: 12,
                     fontWeight: 500,
                   }}
@@ -91,7 +106,7 @@ export default function TransactionTable({ title, transactions }: TransactionTab
                   textAlign: "right",
                   fontSize: 14,
                   fontWeight: 500,
-                  color: tx.positive ? "#00a63e" : "#e7000b",
+                  color: tx.positive ? "success.dark" : "error.main",
                   border: "none",
                 }}
               >

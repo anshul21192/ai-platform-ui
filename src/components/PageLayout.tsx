@@ -1,5 +1,5 @@
-import { Box } from "@mui/material";
-import Sidebar  from "./Sidebar";
+import { Box, Container } from "@mui/material";
+import Sidebar from "./Sidebar";
 
 export default function PageLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,7 +12,9 @@ export default function PageLayout({ children }: { children: React.ReactNode }) 
           overflow: "auto",
         }}
       >
-        {children}
+        <Container maxWidth="xl" disableGutters sx={{ py: 0 }}>
+          {children}
+        </Container>
       </Box>
     </Box>
   );

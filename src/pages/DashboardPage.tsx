@@ -1,4 +1,5 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import GroupIcon from "@mui/icons-material/Group";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -17,13 +18,13 @@ const statCards = [
     change: "+20.1%",
     positive: true,
     icon: <AccountBalanceWalletIcon />,
-    iconBg: "#2b7fff",
+    iconBgKey: "secondary.main" as const,
   },
   {
     title: "Total Beneficiaries",
     value: "23",
     icon: <GroupIcon />,
-    iconBg: "#00c950",
+    iconBgKey: "success.main" as const,
   },
   {
     title: "Transactions",
@@ -31,13 +32,13 @@ const statCards = [
     change: "+12.5%",
     positive: true,
     icon: <ReceiptLongIcon />,
-    iconBg: "#ad46ff",
+    iconBgKey: "primary.main" as const,
   },
   {
     title: "Active Sessions",
     value: "2",
     icon: <WifiIcon />,
-    iconBg: "#ff6900",
+    iconBgKey: "warning.main" as const,
   },
 ];
 
@@ -48,7 +49,7 @@ const transactions: Transaction[] = [
     status: "completed",
     amount: "+$2,500.00",
     positive: true,
-    iconBg: "#dcfce7",
+    iconBgKey: "success.light",
   },
   {
     name: "Transfer to Sarah Johnson",
@@ -56,7 +57,7 @@ const transactions: Transaction[] = [
     status: "completed",
     amount: "-$850.00",
     positive: false,
-    iconBg: "#ffe2e2",
+    iconBgKey: "error.light",
   },
   {
     name: "Subscription Payment",
@@ -64,7 +65,7 @@ const transactions: Transaction[] = [
     status: "completed",
     amount: "-$49.99",
     positive: false,
-    iconBg: "#ffe2e2",
+    iconBgKey: "error.light",
   },
   {
     name: "Salary Deposit",
@@ -72,7 +73,7 @@ const transactions: Transaction[] = [
     status: "completed",
     amount: "+$5,200.00",
     positive: true,
-    iconBg: "#dcfce7",
+    iconBgKey: "success.light",
   },
   {
     name: "Online Purchase",
@@ -80,128 +81,130 @@ const transactions: Transaction[] = [
     status: "pending",
     amount: "-$129.99",
     positive: false,
-    iconBg: "#ffe2e2",
+    iconBgKey: "error.light",
   },
 ];
 
 const barLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
 const barValues = [450, 320, 510, 380, 420, 550, 600];
 
-const pieValues = [
-  { id: 0, value: 45, label: "Deposits", color: "#3b82f6" },
-  { id: 1, value: 25, label: "Withdrawals", color: "#10b981" },
-  { id: 2, value: 20, label: "Transfers", color: "#8b5cf6" },
-  { id: 3, value: 10, label: "Other", color: "#f59e0b" },
-];
+const pieColors = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b"];
+const pieLabels = ["Deposits", "Withdrawals", "Transfers", "Other"];
+const pieValues = [45, 25, 20, 10];
 
 export default function DashboardPage() {
+  const theme = useTheme();
+
   return (
-    <Box sx={{ p: 4, display: "flex", flexDirection: "column", gap: 4 }}>
-      {/* Header */}
-      <Box>
-        <Typography sx={{ fontSize: 30, fontWeight: 600, color: "#101828", lineHeight: "36px", letterSpacing: "0.3955px" }}>
-          Account Overview
-        </Typography>
-        <Typography sx={{ fontSize: 16, color: "#4a5565", lineHeight: "24px", mt: 1 }}>
-          Welcome back! Here's what's happening with your account today.
-        </Typography>
-      </Box>
+    <Box sx={{ p: 4 }}>
+      <Grid container spacing={3}>
+        {/* Header */}
+        <Grid size={12}>
+          <Typography sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px", letterSpacing: "0.3955px" }}>
+            Account Overview
+          </Typography>
+          <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>
+            Welcome back! Here's what's happening with your account today.
+          </Typography>
+        </Grid>
 
-      {/* Stat Cards */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3 }}>
+        {/* Stat Cards */}
         {statCards.map((card) => (
-          <Box
-            key={card.title}
-            sx={{
-              bgcolor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "14px",
-              p: 3.125,
-              display: "flex",
-              flexDirection: "column",
-              gap: 5,
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "10px",
-                  bgcolor: card.iconBg,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  "& svg": { fontSize: 24 },
-                }}
-              >
-                {card.icon}
-              </Box>
-              {card.positive !== undefined && card.change !== undefined && (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  {card.positive ? (
-                    <ArrowUpwardIcon sx={{ fontSize: 16, color: "#00a63e" }} />
-                  ) : (
-                    <ArrowDownwardIcon sx={{ fontSize: 16, color: "#e7000b" }} />
-                  )}
-                  <Typography sx={{ fontSize: 14, color: card.positive ? "#00a63e" : "#e7000b" }}>
-                    {card.change}
-                  </Typography>
+          <Grid key={card.title} size={{ md: 6, lg: 3 }}>
+            <Box
+              sx={{
+                bgcolor: "background.paper",
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: "14px",
+                p: 3.125,
+                display: "flex",
+                flexDirection: "column",
+                gap: 5,
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "10px",
+                    bgcolor: card.iconBgKey,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "white",
+                    "& svg": { fontSize: 24 },
+                  }}
+                >
+                  {card.icon}
                 </Box>
-              )}
+                {card.positive !== undefined && card.change !== undefined && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    {card.positive ? (
+                      <ArrowUpwardIcon sx={{ fontSize: 16, color: "success.dark" }} />
+                    ) : (
+                      <ArrowDownwardIcon sx={{ fontSize: 16, color: "error.main" }} />
+                    )}
+                    <Typography sx={{ fontSize: 14, color: card.positive ? "success.dark" : "error.main" }}>
+                      {card.change}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 24, fontWeight: 600, color: "text.primary", lineHeight: "32px", letterSpacing: "0.0703px" }}>
+                  {card.value}
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: "text.secondary", lineHeight: "20px", mt: 0.5 }}>
+                  {card.title}
+                </Typography>
+              </Box>
             </Box>
-            <Box>
-              <Typography sx={{ fontSize: 24, fontWeight: 600, color: "#101828", lineHeight: "32px", letterSpacing: "0.0703px" }}>
-                {card.value}
-              </Typography>
-              <Typography sx={{ fontSize: 14, color: "#4a5565", lineHeight: "20px", mt: 0.5 }}>
-                {card.title}
-              </Typography>
-            </Box>
-          </Box>
+          </Grid>
         ))}
-      </Box>
 
-      {/* Charts Row */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
-        {/* Transaction Volume */}
-        <Box sx={{ bgcolor: "white", border: "1px solid #e5e7eb", borderRadius: "14px", p: 3 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 600, color: "#101828", lineHeight: "28px", mb: 3 }}>
-            Transaction Volume
-          </Typography>
-          <BarChart
-            height={300}
-            xAxis={[{ data: barLabels, scaleType: "band" }]}
-            series={[{ data: barValues, color: "#2b7fff" }]}
-          />
-        </Box>
+        {/* Charts Row */}
+        <Grid size={{ md: 12, lg: 6 }}>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3, height: "100%" }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
+              Transaction Volume
+            </Typography>
+            <BarChart
+              height={300}
+              xAxis={[{ data: barLabels, scaleType: "band" }]}
+              series={[{ data: barValues, color: theme.palette.secondary.main }]}
+            />
+          </Box>
+        </Grid>
 
-        {/* Transaction Distribution */}
-        <Box sx={{ bgcolor: "white", border: "1px solid #e5e7eb", borderRadius: "14px", p: 3 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 600, color: "#101828", lineHeight: "28px", mb: 3 }}>
-            Transaction Distribution
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Box sx={{ flex: 1 }}>
-              <PieChart
-                height={300}
-                series={[
-                  {
-                    data: pieValues,
-                    innerRadius: 55,
-                    paddingAngle: 2,
-                    cornerRadius: 4,
-                  },
-                ]}
-              />
+        <Grid size={{ md: 12, lg: 6 }}>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3, height: "100%" }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
+              Transaction Distribution
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Box sx={{ flex: 1 }}>
+                <PieChart
+                  height={300}
+                  series={[
+                    {
+                      data: pieValues.map((v, i) => ({ id: i, value: v, label: pieLabels[i], color: pieColors[i] })),
+                      innerRadius: 55,
+                      paddingAngle: 2,
+                      cornerRadius: 4,
+                    },
+                  ]}
+                />
+              </Box>
             </Box>
           </Box>
-        </Box>
-      </Box>
+        </Grid>
 
-      {/* Recent Transactions */}
-      <TransactionTable title="Recent Transactions" transactions={transactions} />
+        {/* Recent Transactions */}
+        <Grid size={12}>
+          <TransactionTable title="Recent Transactions" transactions={transactions} />
+        </Grid>
+      </Grid>
     </Box>
   );
 }

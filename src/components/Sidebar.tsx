@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Drawer, Box, Typography, Avatar, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
+import { Drawer, Box, Typography, Avatar, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useTheme } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BarChartIcon from "@mui/icons-material/BarChart";
@@ -29,6 +29,7 @@ const navItems = [
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   return (
     <Drawer
@@ -39,13 +40,13 @@ export default function Sidebar() {
         "& .MuiDrawer-paper": {
           width: DRAWER_WIDTH,
           boxSizing: "border-box",
-          borderRight: "1px solid #e5e7eb",
+          borderRight: `1px solid ${theme.palette.divider}`,
         },
       }}
     >
       <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* Logo */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, padding: 2}}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, padding: 2}}>
           <SavingsIcon />
           <Typography
             sx={{
@@ -71,9 +72,10 @@ export default function Sidebar() {
                     px: 2,
                     height: 48,
                     borderRadius: "10px",
-                    bgcolor: isActive ? "#eff6ff" : "transparent",
-                    color: isActive ? "#1447e6" : "#364153",
-                    "&:hover": { bgcolor: isActive ? "#eff6ff" : "#f9fafb" },
+                    bgcolor: isActive ? "secondary.light" : "transparent",
+                    color: isActive ? "secondary.main" : "grey.700",
+                    "&:hover": { bgcolor: isActive ? "secondary.light" : "grey.0" },
+                    gap: 1,
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 20, color: "inherit", "& svg": { fontSize: 20 } }}>
@@ -81,14 +83,18 @@ export default function Sidebar() {
                   </ListItemIcon>
                   <ListItemText
                     primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: 16,
-                      fontWeight: isActive ? 500 : 400,
-                      lineHeight: "24px",
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontSize: 16,
+                          fontWeight: isActive ? 500 : 400,
+                          lineHeight: "24px",
+                        },
+                      },
                     }}
                   />
                   {item.expandable && (
-                    <ArrowDropDownIcon sx={{ fontSize: 16, color: "#9ca3af" }} />
+                    <ArrowDropDownIcon sx={{ fontSize: 16, color: "grey.400" }} />
                   )}
                 </ListItemButton>
               </ListItem>
@@ -97,7 +103,7 @@ export default function Sidebar() {
         </List>
 
         {/* User Profile */}
-        <Box sx={{ borderTop: "1px solid #e5e7eb", pt: 2, px: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+        <Box sx={{ borderTop: `1px solid ${theme.palette.divider}`, pt: 2, px: 2, display: "flex", flexDirection: "column", gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.5 }}>
             <Avatar
               sx={{
@@ -111,10 +117,10 @@ export default function Sidebar() {
               JD
             </Avatar>
             <Box>
-              <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#101828", lineHeight: "20px" }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "20px" }}>
                 John Doe
               </Typography>
-              <Typography sx={{ fontSize: 12, color: "#6a7282", lineHeight: "16px" }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: "16px" }}>
                 john@example.com
               </Typography>
             </Box>
@@ -123,4 +129,4 @@ export default function Sidebar() {
       </Box>
     </Drawer>
   );
-};
+}

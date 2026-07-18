@@ -92,7 +92,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
           sx={{
             width: "100%",
             maxWidth: 448,
-            bgcolor: "white",
+            bgcolor: "background.paper",
             borderRadius: "12px",
             boxShadow: "0px 4px 3px rgba(0,0,0,0.1), 0px 10px 7.5px rgba(0,0,0,0.1)",
             px: 4,
@@ -105,8 +105,8 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               sx={{
                 width: 80,
                 height: 80,
-                bgcolor: "#f3f4f6",
-                color: "#1a1a1a",
+                bgcolor: "grey.100",
+                color: "text.primary",
               }}
             >
               <PersonIcon />
@@ -115,7 +115,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               sx={{
                 width: 24,
                 height: 24,
-                bgcolor: "#1a1a1a",
+                bgcolor: "text.primary",
                 position: "absolute",
                 bottom: 0,
                 right: "calc(50% - 48px)",
@@ -142,12 +142,13 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             {/* Email */}
             <TextField
               fullWidth
+              label="Username"
               placeholder="Ex: z@financial.com"
               slotProps={{
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <EmailOutlinedIcon sx={{ color: "#9ca3af", fontSize: 20 }} />
+                      <EmailOutlinedIcon sx={{ color: "grey.400", fontSize: 20 }} />
                     </InputAdornment>
                   ),
                 },
@@ -157,24 +158,25 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 "& .MuiOutlinedInput-root": {
                   height: 50,
                   borderRadius: "8px",
-                  "& fieldset": { borderColor: "#e5e7eb" },
-                  "&:hover fieldset": { borderColor: "#d1d5db" },
-                  "&.Mui-focused fieldset": { borderColor: "#1a1a1a" },
+                  "& fieldset": { borderColor: "grey.200" },
+                  "&:hover fieldset": { borderColor: "grey.300" },
+                  "&.Mui-focused fieldset": { borderColor: "text.primary" },
                 },
-                "& input::placeholder": { color: "#adaebc", fontSize: 16, opacity: 1 },
+                "& input::placeholder": { color: "grey.500", fontSize: 16, opacity: 1 },
               }}
             />
 
             {/* Password */}
             <TextField
               fullWidth
+              label="Password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               slotProps={{
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <LockOutlinedIcon sx={{ color: "#9ca3af", fontSize: 20 }} />
+                      <LockOutlinedIcon sx={{ color: "grey.400", fontSize: 20 }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -183,7 +185,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                         size="small"
-                        sx={{ color: "#9ca3af" }}
+                        sx={{ color: "grey.400" }}
                       >
                         {showPassword ? (
                           <VisibilityOutlinedIcon sx={{ fontSize: 20 }} />
@@ -200,11 +202,11 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 "& .MuiOutlinedInput-root": {
                   height: 50,
                   borderRadius: "8px",
-                  "& fieldset": { borderColor: "#e5e7eb" },
-                  "&:hover fieldset": { borderColor: "#d1d5db" },
-                  "&.Mui-focused fieldset": { borderColor: "#1a1a1a" },
+                  "& fieldset": { borderColor: "grey.200" },
+                  "&:hover fieldset": { borderColor: "grey.300" },
+                  "&.Mui-focused fieldset": { borderColor: "text.primary" },
                 },
-                "& input::placeholder": { color: "#adaebc", fontSize: 16, opacity: 1 },
+                "& input::placeholder": { color: "grey.500", fontSize: 16, opacity: 1 },
               }}
             />
 
@@ -215,8 +217,8 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                   <Checkbox
                     size="small"
                     sx={{
-                      "&.Mui-checked": { color: "#1a1a1a" },
-                      color: "#d1d5db",
+                      "&.Mui-checked": { color: "text.primary" },
+                      color: "grey.300",
                     }}
                   />
                 }
@@ -247,13 +249,13 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               onClick={onLogin}
               sx={{
                 height: 48,
-                bgcolor: "#1f2937",
+                bgcolor: "grey.800",
                 textTransform: "none",
                 fontSize: 16,
                 fontWeight: 500,
                 borderRadius: "8px",
                 boxShadow: "none",
-                "&:hover": { bgcolor: "#111827", boxShadow: "none" },
+                "&:hover": { bgcolor: "grey.900", boxShadow: "none" },
               }}
             >
               Sign In

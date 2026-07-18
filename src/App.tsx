@@ -5,6 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import theme from "./theme/theme";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import BeneficiariesPage from "./pages/BeneficiariesPage";
 import PageLayout from "./components/PageLayout";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,7 @@ export default function App() {
         <ProtectedRoute>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/beneficiaries" element={<BeneficiariesPage />} />
           </Routes>
         </ProtectedRoute>
       </BrowserRouter>
