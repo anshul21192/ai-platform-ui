@@ -123,6 +123,4 @@ export default function Sidebar() {
       </Box>
     </Drawer>
   );
-}
-
-export { DRAWER_WIDTH };
+};

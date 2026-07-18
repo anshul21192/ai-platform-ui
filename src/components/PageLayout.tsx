@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import Sidebar, { DRAWER_WIDTH } from "./Sidebar";
+import Sidebar  from "./Sidebar";
 
 export default function PageLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +9,6 @@ export default function PageLayout({ children }: { children: React.ReactNode }) 
         component="main"
         sx={{
           flex: 1,
-          // ml: `${DRAWER_WIDTH}px`,
           overflow: "auto",
         }}
       >
