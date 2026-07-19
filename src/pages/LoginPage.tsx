@@ -93,7 +93,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             width: "100%",
             maxWidth: 448,
             bgcolor: "background.paper",
-            borderRadius: "12px",
             boxShadow: "0px 4px 3px rgba(0,0,0,0.1), 0px 10px 7.5px rgba(0,0,0,0.1)",
             px: 4,
             py: 5,
@@ -157,7 +156,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 mb: 2,
                 "& .MuiOutlinedInput-root": {
                   height: 50,
-                  borderRadius: "8px",
                   "& fieldset": { borderColor: "grey.200" },
                   "&:hover fieldset": { borderColor: "grey.300" },
                   "&.Mui-focused fieldset": { borderColor: "text.primary" },
@@ -201,7 +199,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 mb: 2,
                 "& .MuiOutlinedInput-root": {
                   height: 50,
-                  borderRadius: "8px",
                   "& fieldset": { borderColor: "grey.200" },
                   "&:hover fieldset": { borderColor: "grey.300" },
                   "&.Mui-focused fieldset": { borderColor: "text.primary" },
@@ -249,7 +246,6 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 textTransform: "none",
                 fontSize: 16,
                 fontWeight: 500,
-                borderRadius: "8px",
                 boxShadow: "none",
                 "&:hover": { boxShadow: "none" },
               }}

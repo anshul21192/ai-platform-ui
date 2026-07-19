@@ -96,7 +96,6 @@ export default function BeneficiariesPage() {
               onClick={navigateToAdd}
               sx={{
                 textTransform: "none",
-                borderRadius: "8px",
                 px: 2,
                 height: 36,
                 fontSize: 14,
@@ -118,10 +117,9 @@ export default function BeneficiariesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             variant="outlined"
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "14px",
-                bgcolor: "grey.0",
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  bgcolor: "grey.0",
                 fontSize: 14,
                 lineHeight: "normal",
                 letterSpacing: "-0.1504px",
@@ -164,7 +162,6 @@ export default function BeneficiariesPage() {
           slotProps={{
             paper: {
               sx: {
-                borderRadius: "10px",
                 minWidth: 180,
                 boxShadow: "0px 4px 24px rgba(0,0,0,0.12)",
               },

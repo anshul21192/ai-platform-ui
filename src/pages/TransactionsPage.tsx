@@ -86,17 +86,16 @@ export default function TransactionsPage() {
             <Button
               variant="contained"
               startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                bgcolor: "#155dfc",
-                height: 36,
-                borderRadius: "8px",
-                fontSize: 14,
-                fontWeight: 500,
-                textTransform: "none",
-                boxShadow: "none",
-                px: 2,
-                "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
-              }}
+                sx={{
+                  bgcolor: "#155dfc",
+                  height: 36,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textTransform: "none",
+                  boxShadow: "none",
+                  px: 2,
+                  "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
+                }}
             >
               Export
             </Button>
@@ -105,7 +104,7 @@ export default function TransactionsPage() {
 
         {/* Search & Filters */}
         <Grid size={12}>
-          <Card variant="outlined" sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", boxShadow: "none" }}>
+          <Card variant="outlined" sx={{ border: `1px solid ${theme.palette.divider}`, boxShadow: "none" }}>
             <CardContent sx={{ p: "25px !important" }}>
               <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                 <TextField
@@ -118,14 +117,13 @@ export default function TransactionsPage() {
                       startAdornment: <SearchIcon sx={{ fontSize: 20, color: "grey.400", mr: 1 }} />,
                     },
                   }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "8px",
-                      bgcolor: "#f3f3f5",
-                      "& fieldset": { border: "none" },
-                      "&:hover fieldset": { border: "none" },
-                      "&.Mui-focused fieldset": { border: "none" },
-                    },
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        bgcolor: "#f3f3f5",
+                        "& fieldset": { border: "none" },
+                        "&:hover fieldset": { border: "none" },
+                        "&.Mui-focused fieldset": { border: "none" },
+                      },
                     "& .MuiInputBase-input": { fontSize: 14, py: "6px" },
                   }}
                 />
@@ -142,7 +140,6 @@ export default function TransactionsPage() {
                     sx={{
                       height: 36,
                       minWidth: 90,
-                      borderRadius: "8px",
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
@@ -164,7 +161,6 @@ export default function TransactionsPage() {
                   onClick={handleClearFilters}
                   sx={{
                     height: 36,
-                    borderRadius: "8px",
                     fontSize: 14,
                     fontWeight: 500,
                     textTransform: "none",
@@ -183,7 +179,7 @@ export default function TransactionsPage() {
                   transformOrigin={{ vertical: "top", horizontal: "left" }}
                   slotProps={{
                     paper: {
-                      sx: { borderRadius: "12px", minWidth: 200, mt: 1 },
+                      sx: { minWidth: 200, mt: 1 },
                     },
                   }}
                 >

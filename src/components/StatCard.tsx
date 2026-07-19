@@ -36,7 +36,6 @@ export default function StatCard({ title, value, change, positive, icon, iconBgK
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       sx={{
-        borderRadius: "14px",
         height: "100%",
         boxShadow: "none",
         ...(to && {
@@ -51,7 +50,6 @@ export default function StatCard({ title, value, change, positive, icon, iconBgK
             sx={{
               width: 48,
               height: 48,
-              borderRadius: "10px",
               bgcolor: iconBgKey ?? "grey.100",
               display: "flex",
               alignItems: "center",

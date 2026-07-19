@@ -93,7 +93,7 @@ export default function DashboardPage() {
 
         {/* Charts Row */}
         <Grid size={{ md: 12, lg: 6 }}>
-          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3, height: "100%" }}>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, p: 3, height: "100%" }}>
             <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
               Transaction Volume
             </Typography>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
         </Grid>
 
         <Grid size={{ md: 12, lg: 6 }}>
-          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3, height: "100%" }}>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, p: 3, height: "100%" }}>
             <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
               Transaction Distribution
             </Typography>

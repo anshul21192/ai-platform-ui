@@ -20,7 +20,7 @@ interface SectionHeaderProps {
 function SectionHeader({ iconBg, icon, title }: SectionHeaderProps) {
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 4 }}>
-      <Box sx={{ bgcolor: iconBg, borderRadius: "10px", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "inherit" }}>
+      <Box sx={{ bgcolor: iconBg, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "inherit" }}>
         {icon}
       </Box>
       <Typography sx={{ fontSize: 20, fontWeight: 600, color: "text.primary", lineHeight: "28px", letterSpacing: "-0.4492px" }}>
@@ -51,7 +51,6 @@ function FieldRow({ label, placeholder, value, onChange, type = "text" }: FieldR
         onChange={(e) => onChange(e.target.value)}
         sx={{
           "& .MuiOutlinedInput-root": {
-            borderRadius: "8px",
             bgcolor: "#f3f3f5",
             "& fieldset": { border: "none" },
             "&:hover fieldset": { border: "none" },
@@ -118,7 +117,6 @@ export default function SettingsPage() {
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
-    borderRadius: "14px",
     boxShadow: "none",
   };
 
@@ -152,19 +150,18 @@ export default function SettingsPage() {
                 <FieldRow label="Phone Number" value={phone} onChange={setPhone} />
                 <Button
                   variant="contained"
-                  sx={{
-                    bgcolor: "#155dfc",
-                    height: 36,
-                    borderRadius: "8px",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    boxShadow: "none",
-                    "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
-                  }}
-                >
-                  Save Changes
-                </Button>
+                    sx={{
+                      bgcolor: "#155dfc",
+                      height: 36,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      boxShadow: "none",
+                      "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
+                    }}
+                  >
+                    Save Changes
+                  </Button>
               </Box>
             </CardContent>
           </Card>
@@ -197,19 +194,18 @@ export default function SettingsPage() {
                 <ToggleRow title="Two-Factor Authentication" description="Add an extra layer of security" checked={twoFactor} onChange={setTwoFactor} />
                 <Button
                   variant="contained"
-                  sx={{
-                    bgcolor: "#155dfc",
-                    height: 36,
-                    borderRadius: "8px",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    boxShadow: "none",
-                    "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
-                  }}
-                >
-                  Update Password
-                </Button>
+                    sx={{
+                      bgcolor: "#155dfc",
+                      height: 36,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      boxShadow: "none",
+                      "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
+                    }}
+                  >
+                    Update Password
+                  </Button>
               </Box>
             </CardContent>
           </Card>
@@ -227,7 +223,6 @@ export default function SettingsPage() {
                     alignItems: "center",
                     justifyContent: "space-between",
                     border: `1px solid rgba(0,0,0,0.1)`,
-                    borderRadius: "10px",
                     px: "17px",
                     py: 1,
                   }}
@@ -236,7 +231,6 @@ export default function SettingsPage() {
                     <Box
                       sx={{
                         background: "linear-gradient(90deg, #155dfc 0%, #9810fa 100%)",
-                        borderRadius: "4px",
                         width: 48,
                         height: 32,
                         display: "flex",
@@ -260,7 +254,6 @@ export default function SettingsPage() {
                     sx={{
                       height: 32,
                       minWidth: 78,
-                      borderRadius: "8px",
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
@@ -275,19 +268,18 @@ export default function SettingsPage() {
                 <Button
                   variant="outlined"
                   fullWidth
-                  sx={{
-                    height: 36,
-                    borderRadius: "8px",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    textTransform: "none",
-                    color: "#0a0a0a",
-                    borderColor: "rgba(0,0,0,0.1)",
-                    "&:hover": { borderColor: "rgba(0,0,0,0.2)", bgcolor: "grey.50" },
-                  }}
-                >
-                  Add Payment Method
-                </Button>
+                    sx={{
+                      height: 36,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      color: "#0a0a0a",
+                      borderColor: "rgba(0,0,0,0.1)",
+                      "&:hover": { borderColor: "rgba(0,0,0,0.2)", bgcolor: "grey.50" },
+                    }}
+                  >
+                    Add Payment Method
+                  </Button>
               </Box>
             </CardContent>
           </Card>
@@ -309,7 +301,6 @@ export default function SettingsPage() {
                     slotProps={{ select: { native: true } }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        borderRadius: "10px",
                         "& fieldset": { borderColor: "#d1d5dc" },
                       },
                       "& .MuiInputBase-input": { fontSize: 14, py: "8px", px: "12px" },
@@ -328,7 +319,6 @@ export default function SettingsPage() {
                     slotProps={{ select: { native: true } }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        borderRadius: "10px",
                         "& fieldset": { borderColor: "#d1d5dc" },
                       },
                       "& .MuiInputBase-input": { fontSize: 14, py: "8px", px: "12px" },
@@ -347,7 +337,6 @@ export default function SettingsPage() {
                     slotProps={{ select: { native: true } }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        borderRadius: "10px",
                         "& fieldset": { borderColor: "#d1d5dc" },
                       },
                       "& .MuiInputBase-input": { fontSize: 14, py: "8px", px: "12px" },

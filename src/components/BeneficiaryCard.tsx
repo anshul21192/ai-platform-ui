@@ -20,7 +20,6 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
     <Card
       variant="outlined"
       sx={{
-        borderRadius: "14px",
         height: "100%",
         boxShadow: "none",
       }}
@@ -42,7 +41,7 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
           </Avatar>
           <IconButton
             size="small"
-            sx={{ width: 36, height: 36, borderRadius: "10px" }}
+            sx={{ width: 36, height: 36 }}
             onClick={onMenuOpen}
           >
             <MoreVertIcon sx={{ fontSize: 20, color: "grey.700" }} />
@@ -86,7 +85,6 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
             fullWidth
             sx={{
               textTransform: "none",
-              borderRadius: "8px",
               height: 32,
               fontSize: 14,
               fontWeight: 500,
@@ -103,7 +101,6 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
               color: "text.primary",
               borderColor: "divider",
               textTransform: "none",
-              borderRadius: "8px",
               height: 32,
               fontSize: 14,
               fontWeight: 500,

@@ -131,7 +131,7 @@ export default function TransactionTable({ title, transactions, columns }: Trans
   const cols = columns ?? defaultColumns;
 
   return (
-    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3 }}>
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, p: 3 }}>
       {title && (
         <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
           {title}

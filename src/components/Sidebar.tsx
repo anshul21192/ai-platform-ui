@@ -100,7 +100,6 @@ export default function Sidebar() {
                   sx={{
                     px: 2,
                     height: 48,
-                    borderRadius: "10px",
                     bgcolor: isActive && !item.children ? "secondary.light" : "transparent",
                     color: isActive && !item.children ? "secondary.main" : item.disabled ? "grey.400" : "grey.700",
                     opacity: item.disabled ? 0.5 : 1,
@@ -147,7 +146,6 @@ export default function Sidebar() {
                                 pl: 6,
                                 pr: 2,
                                 height: 36,
-                                borderRadius: "10px",
                                 bgcolor: isChildActive ? "secondary.light" : "transparent",
                                 color: isChildActive ? "secondary.main" : "grey.600",
                                 "&:hover": { bgcolor: isChildActive ? "secondary.light" : "grey.0" },

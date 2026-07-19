@@ -18,7 +18,6 @@ import { useBeneficiary } from "../contexts/BeneficiaryContext";
 const inputSx = {
   "& .MuiOutlinedInput-root": {
     bgcolor: "#f3f3f5",
-    borderRadius: "8px",
     height: 36,
     fontSize: 14,
     color: "#717182",
@@ -84,7 +83,6 @@ export default function SendMoneyPage() {
           sx={{
             flex: "1 1 0",
             padding: 3,
-            borderRadius: "14px",
             border: "1px solid #e5e7eb",
           }}
         >
@@ -112,7 +110,6 @@ export default function SendMoneyPage() {
                       gap: "12px",
                       p: "2px",
                       pl: "14px",
-                      borderRadius: "10px",
                       border: "2px solid",
                       borderColor:
                         selectedRecipient === recipient.id
@@ -258,7 +255,6 @@ export default function SendMoneyPage() {
                   onChange={handleCurrencyChange}
                   sx={{
                     height: 36,
-                    borderRadius: "10px",
                     fontSize: 14,
                     "& .MuiOutlinedInput-notchedOutline": {
                       borderColor: "#d1d5dc",
@@ -282,15 +278,14 @@ export default function SendMoneyPage() {
                   placeholder="Add a note..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "10px",
-                      fontSize: 14,
-                      color: "rgba(10,10,10,0.5)",
-                      "& fieldset": { borderColor: "#d1d5dc" },
-                      "& input::placeholder": { color: "rgba(10,10,10,0.5)", opacity: 1 },
-                    },
-                  }}
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        fontSize: 14,
+                        color: "rgba(10,10,10,0.5)",
+                        "& fieldset": { borderColor: "#d1d5dc" },
+                        "& input::placeholder": { color: "rgba(10,10,10,0.5)", opacity: 1 },
+                      },
+                    }}
                 />
               </Box>
 
@@ -303,7 +298,6 @@ export default function SendMoneyPage() {
                   bgcolor: "#155dfc",
                   color: "white",
                   height: 36,
-                  borderRadius: "8px",
                   textTransform: "none",
                   fontSize: 14,
                   fontWeight: 500,
@@ -320,12 +314,11 @@ export default function SendMoneyPage() {
         {/* Transaction Summary */}
         <Paper
           elevation={0}
-          sx={{
-            width: 262,
-            flexShrink: 0,
-            padding: 3,
-            borderRadius: "14px",
-            border: "1px solid #e5e7eb",
+            sx={{
+              width: 262,
+              flexShrink: 0,
+              padding: 3,
+              border: "1px solid #e5e7eb",
             display: "flex",
             flexDirection: "column",
             gap: 5,
@@ -377,7 +370,6 @@ export default function SendMoneyPage() {
               sx={{
                 bgcolor: "#eff6ff",
                 p: 2,
-                borderRadius: "10px",
               }}
             >
               <Typography sx={{ fontSize: 14, color: "#193cb8", lineHeight: "20px" }}>
