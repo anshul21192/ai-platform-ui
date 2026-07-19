@@ -1,32 +1,63 @@
-# React + TypeScript + Vite
+# AI Platform UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A React-based frontend for an AI-powered financial platform that enables users to manage beneficiaries, send and request money, view transactions, and monitor activity through a dashboard.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** with TypeScript
+- **Vite** for dev server and bundling
+- **MUI (Material UI)** for component library and theming
+- **React Router** for client-side routing
+- **MSW** for API mocking during development
+- **oxlint** for linting
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the Oxlint configuration
+- Node.js 18+
+- pnpm
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### Install dependencies
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+pnpm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Start development server
+
+```bash
+pnpm dev
+```
+
+The app will be available at `http://localhost:5173`.
+
+### Build for production
+
+```bash
+pnpm build
+```
+
+### Preview production build
+
+```bash
+pnpm preview
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
+
+## Pages
+
+| Route | Description |
+|---|---|
+| `/` | Dashboard with activity summary |
+| `/beneficiaries` | List and manage beneficiaries |
+| `/manageBeneficiary` | Add or edit a beneficiary |
+| `/transactions` | View transaction history |
+| `/payments/send-money` | Send money to a beneficiary |
+| `/payments/request-money` | Request money from a beneficiary |
+| `/settings` | User settings |
