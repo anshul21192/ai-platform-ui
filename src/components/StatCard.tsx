@@ -2,6 +2,7 @@ import { Card, CardContent, Typography, Box } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { useNavigate } from "react-router-dom";
 
 interface StatCardProps {
   title: string;
@@ -10,16 +11,38 @@ interface StatCardProps {
   positive?: boolean;
   icon: React.ReactElement<SvgIconProps>;
   iconBgKey?: string;
+  to?: string;
 }
 
-export default function StatCard({ title, value, change, positive, icon, iconBgKey }: StatCardProps) {
+export default function StatCard({ title, value, change, positive, icon, iconBgKey, to }: StatCardProps) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (to) navigate(to);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (to && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      navigate(to);
+    }
+  };
+
   return (
     <Card
       variant="outlined"
+      role={to ? "link" : undefined}
+      tabIndex={to ? 0 : undefined}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       sx={{
         borderRadius: "14px",
         height: "100%",
         boxShadow: "none",
+        ...(to && {
+          cursor: "pointer",
+          "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" },
+        }),
       }}
     >
       <CardContent sx={{ p: 3.125, display: "flex", flexDirection: "column", gap: 5 }}>

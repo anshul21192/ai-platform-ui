@@ -20,7 +20,7 @@ const DRAWER_WIDTH = 256;
 const navItems = [
   { label: "Overview", icon: <DashboardIcon />, path: "/" },
   { label: "Transactions", icon: <SwapHorizIcon />, path: "/transactions" },
-  { label: "Analytics", icon: <BarChartIcon />, path: "/analytics" },
+  { label: "Analytics", icon: <BarChartIcon />, path: "/analytics", disabled: true },
   {
     label: "Payments",
     icon: <PaymentsIcon />,
@@ -31,10 +31,10 @@ const navItems = [
       { label: "Request Money", icon: <CallReceivedIcon />, path: "/payments/request-money" },
     ],
   },
-  { label: "Bills", icon: <ReceiptIcon />, expandable: true, path: "/bills" },
-  { label: "Cards", icon: <CreditCardIcon />, path: "/cards" },
+  { label: "Bills", icon: <ReceiptIcon />, expandable: true, path: "/bills", disabled: true },
+  { label: "Cards", icon: <CreditCardIcon />, path: "/cards", disabled: true },
   { label: "Beneficiaries", icon: <PeopleIcon />, path: "/beneficiaries" },
-  { label: "Quick Actions", icon: <BoltIcon />, expandable: true, path: "/quick-actions" },
+  { label: "Quick Actions", icon: <BoltIcon />, expandable: true, path: "/quick-actions", disabled: true },
   { label: "Settings", icon: <SettingsIcon />, path: "/settings" },
 ];
 
@@ -88,7 +88,9 @@ export default function Sidebar() {
             return (
               <Box key={item.label} sx={{ display: "flex", flexDirection: "column" }}>
                 <ListItemButton
+                  disabled={item.disabled}
                   onClick={() => {
+                    if (item.disabled) return;
                     if (item.expandable && item.children) {
                       toggleExpand(item.label);
                     } else {
@@ -100,7 +102,8 @@ export default function Sidebar() {
                     height: 48,
                     borderRadius: "10px",
                     bgcolor: isActive && !item.children ? "secondary.light" : "transparent",
-                    color: isActive && !item.children ? "secondary.main" : "grey.700",
+                    color: isActive && !item.children ? "secondary.main" : item.disabled ? "grey.400" : "grey.700",
+                    opacity: item.disabled ? 0.5 : 1,
                     "&:hover": { bgcolor: isActive && !item.children ? "secondary.light" : "grey.0" },
                     gap: 1,
                   }}

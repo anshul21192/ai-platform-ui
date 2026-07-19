@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchBeneficiaries, addBeneficiary as apiAdd, updateBeneficiary as apiUpdate, deleteBeneficiary as apiDelete } from "../api/beneficiaries";
 
 export interface Beneficiary {
   id: number;
@@ -12,83 +13,11 @@ export interface Beneficiary {
   gradient: string;
 }
 
-const gradients = [
-  "linear-gradient(135deg, #2b7fff 0%, #155dfc 100%)",
-  "linear-gradient(135deg, #ad46ff 0%, #9810fa 100%)",
-  "linear-gradient(135deg, #00c950 0%, #00a63e 100%)",
-  "linear-gradient(135deg, #f6339a 0%, #e60076 100%)",
-  "linear-gradient(135deg, #ff6900 0%, #f54900 100%)",
-  "linear-gradient(135deg, #00bba7 0%, #009689 100%)",
-];
-
-const initialBeneficiaries: Beneficiary[] = [
-  {
-    id: 1,
-    name: "John Smith",
-    initials: "JS",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    bank: "JPMorgan Chase",
-    account: "****1234",
-    gradient: gradients[0],
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    initials: "SJ",
-    email: "sarah@example.com",
-    phone: "+1 (555) 234-5678",
-    bank: "Bank of America",
-    account: "****5678",
-    gradient: gradients[1],
-  },
-  {
-    id: 3,
-    name: "Michael Brown",
-    initials: "MB",
-    email: "michael@example.com",
-    phone: "+1 (555) 345-6789",
-    bank: "Wells Fargo",
-    account: "****9012",
-    gradient: gradients[2],
-  },
-  {
-    id: 4,
-    name: "Emily Davis",
-    initials: "ED",
-    email: "emily@example.com",
-    phone: "+1 (555) 456-7890",
-    bank: "Citibank",
-    account: "****3456",
-    gradient: gradients[3],
-  },
-  {
-    id: 5,
-    name: "David Wilson",
-    initials: "DW",
-    email: "david@example.com",
-    phone: "+1 (555) 567-8901",
-    bank: "Bank of America",
-    account: "****7890",
-    gradient: gradients[4],
-  },
-  {
-    id: 6,
-    name: "Jessica Miller",
-    initials: "JM",
-    email: "jessica@example.com",
-    phone: "+1 (555) 678-9012",
-    bank: "Deutsche Bank",
-    account: "****2345",
-    gradient: gradients[5],
-  },
-];
-
 interface BeneficiaryContextType {
   beneficiaries: Beneficiary[];
-  addBeneficiary: (b: Omit<Beneficiary, "id" | "gradient">) => void;
-  updateBeneficiary: (b: Beneficiary) => void;
-  removeBeneficiary: (id: number) => void;
+  addBeneficiary: (b: Omit<Beneficiary, "id" | "gradient">) => Promise<void>;
+  updateBeneficiary: (b: Beneficiary) => Promise<void>;
+  removeBeneficiary: (id: number) => Promise<void>;
   editingBeneficiary: Beneficiary | null;
   navigateToAdd: () => void;
   navigateToEdit: (beneficiary: Beneficiary) => void;
@@ -109,22 +38,32 @@ function loadEditingBeneficiary(): Beneficiary | null {
 }
 
 export function BeneficiaryProvider({ children }: { children: React.ReactNode }) {
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(initialBeneficiaries);
+  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [editingBeneficiary, setEditingBeneficiary] = useState<Beneficiary | null>(loadEditingBeneficiary);
   const navigate = useNavigate();
 
-  const addBeneficiary = useCallback((b: Omit<Beneficiary, "id" | "gradient">) => {
-    setBeneficiaries((prev) => {
-      const nextId = prev.length > 0 ? Math.max(...prev.map((x) => x.id)) + 1 : 1;
-      return [...prev, { ...b, id: nextId, gradient: gradients[prev.length % gradients.length] }];
-    });
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchBeneficiaries({ signal: controller.signal })
+      .then(setBeneficiaries)
+      .catch((e) => {
+        if (e.name !== "AbortError") console.error(e);
+      });
+    return () => controller.abort();
   }, []);
 
-  const updateBeneficiary = useCallback((b: Beneficiary) => {
-    setBeneficiaries((prev) => prev.map((item) => (item.id === b.id ? b : item)));
+  const addBeneficiary = useCallback(async (b: Omit<Beneficiary, "id" | "gradient">) => {
+    const created = await apiAdd(b);
+    setBeneficiaries((prev) => [...prev, created]);
   }, []);
 
-  const removeBeneficiary = useCallback((id: number) => {
+  const updateBeneficiary = useCallback(async (b: Beneficiary) => {
+    const updated = await apiUpdate(b);
+    setBeneficiaries((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+  }, []);
+
+  const removeBeneficiary = useCallback(async (id: number) => {
+    await apiDelete(id);
     setBeneficiaries((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
@@ -170,5 +109,13 @@ export function useBeneficiary() {
 }
 
 export function getRandomGradient() {
+  const gradients = [
+    "linear-gradient(135deg, #2b7fff 0%, #155dfc 100%)",
+    "linear-gradient(135deg, #ad46ff 0%, #9810fa 100%)",
+    "linear-gradient(135deg, #00c950 0%, #00a63e 100%)",
+    "linear-gradient(135deg, #f6339a 0%, #e60076 100%)",
+    "linear-gradient(135deg, #ff6900 0%, #f54900 100%)",
+    "linear-gradient(135deg, #00bba7 0%, #009689 100%)",
+  ];
   return gradients[Math.floor(Math.random() * gradients.length)];
 }

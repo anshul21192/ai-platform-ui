@@ -1,24 +1,32 @@
-import { useState } from "react";
-import { Box, Typography, TextField, Button, Card, CardContent, useTheme } from "@mui/material";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  useTheme,
+  Badge,
+  Popover,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Divider,
+} from "@mui/material";
 import Grid from "@mui/material/Grid";
 import DownloadIcon from "@mui/icons-material/Download";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import SearchIcon from "@mui/icons-material/Search";
 import TransactionTable from "../components/TransactionTable";
 import type { Transaction, Column } from "../components/TransactionTable";
+import { fetchDetailedTransactions } from "../api/transactions";
 
-const transactions: Transaction[] = [
-  { name: "Payment from John Smith", category: "Income", date: "Mar 28, 2026 10:32 AM", status: "completed", amount: "+$2,500.00", positive: true },
-  { name: "Transfer to Sarah Johnson", category: "Transfer", date: "Mar 27, 2026 03:15 PM", status: "completed", amount: "-$850.00", positive: false },
-  { name: "Subscription Payment", category: "Subscription", date: "Mar 26, 2026 12:00 PM", status: "completed", amount: "-$49.99", positive: false },
-  { name: "Salary Deposit", category: "Salary", date: "Mar 25, 2026 09:00 AM", status: "completed", amount: "+$5,200.00", positive: true },
-  { name: "Online Purchase", category: "Shopping", date: "Mar 24, 2026 04:22 PM", status: "pending", amount: "-$129.99", positive: false },
-  { name: "Freelance Payment", category: "Income", date: "Mar 23, 2026 02:10 PM", status: "completed", amount: "+$1,200.00", positive: true },
-  { name: "Utility Bill", category: "Bills", date: "Mar 22, 2026 08:30 AM", status: "completed", amount: "-$245.50", positive: false },
-  { name: "Restaurant", category: "Food", date: "Mar 21, 2026 07:45 PM", status: "completed", amount: "-$87.50", positive: false },
-  { name: "Refund", category: "Refund", date: "Mar 20, 2026 11:20 AM", status: "completed", amount: "+$65.00", positive: true },
-  { name: "Insurance Premium", category: "Insurance", date: "Mar 19, 2026 10:00 AM", status: "completed", amount: "-$350.00", positive: false },
-];
+const STATUS_OPTIONS = [
+  { value: "completed", label: "Completed" },
+  { value: "pending", label: "Pending" },
+] as const;
 
 const tableColumns: Column[] = [
   { key: "transaction", label: "Transaction" },
@@ -30,13 +38,36 @@ const tableColumns: Column[] = [
 
 export default function TransactionsPage() {
   const theme = useTheme();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [statusFilters, setStatusFilters] = useState<string[]>(() => {
+    const initial = searchParams.get("status");
+    return initial ? [initial] : [];
+  });
+  const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLButtonElement | null>(null);
 
-  const filtered = transactions.filter(
-    (tx) =>
-      tx.name.toLowerCase().includes(search.toLowerCase()) ||
-      tx.category?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const isFilterActive = statusFilters.length > 0;
+
+  const handleFilterToggle = useCallback((status: string) => {
+    setStatusFilters((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status],
+    );
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setStatusFilters([]);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchDetailedTransactions(search, { signal: controller.signal, status: statusFilters })
+      .then(setTransactions)
+      .catch((e) => {
+        if (e.name !== "AbortError") console.error(e);
+      });
+    return () => controller.abort();
+  }, [search, statusFilters]);
 
   return (
     <Box sx={{ p: 4 }}>
@@ -98,24 +129,91 @@ export default function TransactionsPage() {
                     "& .MuiInputBase-input": { fontSize: 14, py: "6px" },
                   }}
                 />
+                <Badge
+                  variant="dot"
+                  badgeContent=" "
+                  color="primary"
+                  invisible={!isFilterActive}
+                >
+                  <Button
+                    variant="outlined"
+                    startIcon={<FilterListIcon sx={{ fontSize: 16 }} />}
+                    onClick={(e) => setFilterAnchorEl(e.currentTarget)}
+                    sx={{
+                      height: 36,
+                      minWidth: 90,
+                      borderRadius: "8px",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      textTransform: "none",
+                      color: isFilterActive ? "#155dfc" : "#0a0a0a",
+                      borderColor: isFilterActive ? "#155dfc" : "rgba(0,0,0,0.1)",
+                      flexShrink: 0,
+                      "&:hover": {
+                        borderColor: isFilterActive ? "#1250d6" : "rgba(0,0,0,0.2)",
+                        bgcolor: "grey.50",
+                      },
+                    }}
+                  >
+                    Filters
+                  </Button>
+                </Badge>
                 <Button
-                  variant="outlined"
-                  startIcon={<FilterListIcon sx={{ fontSize: 16 }} />}
+                  variant="text"
+                  disabled={!isFilterActive}
+                  onClick={handleClearFilters}
                   sx={{
                     height: 36,
-                    minWidth: 90,
                     borderRadius: "8px",
                     fontSize: 14,
                     fontWeight: 500,
                     textTransform: "none",
-                    color: "#0a0a0a",
-                    borderColor: "rgba(0,0,0,0.1)",
+                    color: "#ef4444",
                     flexShrink: 0,
-                    "&:hover": { borderColor: "rgba(0,0,0,0.2)", bgcolor: "grey.50" },
+                    "&:hover": { bgcolor: "rgba(239,68,68,0.08)" },
                   }}
                 >
-                  Filters
+                  Clear filters
                 </Button>
+                <Popover
+                  open={Boolean(filterAnchorEl)}
+                  anchorEl={filterAnchorEl}
+                  onClose={() => setFilterAnchorEl(null)}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                  transformOrigin={{ vertical: "top", horizontal: "left" }}
+                  slotProps={{
+                    paper: {
+                      sx: { borderRadius: "12px", minWidth: 200, mt: 1 },
+                    },
+                  }}
+                >
+                  <Box sx={{ px: 2, py: 1.5 }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: "text.primary" }}>
+                      Status
+                    </Typography>
+                  </Box>
+                  <Divider />
+                  <FormGroup sx={{ px: 2, py: 1 }}>
+                    {STATUS_OPTIONS.map((option) => (
+                      <FormControlLabel
+                        key={option.value}
+                        control={
+                          <Checkbox
+                            checked={statusFilters.includes(option.value)}
+                            onChange={() => handleFilterToggle(option.value)}
+                            size="small"
+                            sx={{ "&.Mui-checked": { color: "#155dfc" } }}
+                          />
+                        }
+                        label={
+                          <Typography sx={{ fontSize: 14, color: "text.primary" }}>
+                            {option.label}
+                          </Typography>
+                        }
+                      />
+                    ))}
+                  </FormGroup>
+                </Popover>
               </Box>
             </CardContent>
           </Card>
@@ -123,7 +221,7 @@ export default function TransactionsPage() {
 
         {/* Table */}
         <Grid size={12}>
-          <TransactionTable transactions={filtered} columns={tableColumns} />
+          <TransactionTable transactions={transactions} columns={tableColumns} />
         </Grid>
       </Grid>
     </Box>

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -9,80 +10,8 @@ import { PieChart } from "@mui/x-charts/PieChart";
 import StatCard from "../components/StatCard";
 import TransactionTable from "../components/TransactionTable";
 import type { Transaction } from "../components/TransactionTable";
-
-const statCards = [
-  {
-    title: "Total Balance",
-    value: "$45,231.89",
-    change: "+20.1%",
-    positive: true,
-    icon: <AccountBalanceWalletIcon />,
-    iconBgKey: "secondary.main" as const,
-  },
-  {
-    title: "Total Beneficiaries",
-    value: "23",
-    icon: <GroupIcon />,
-    iconBgKey: "success.main" as const,
-  },
-  {
-    title: "Transactions",
-    value: "12,234",
-    change: "+12.5%",
-    positive: true,
-    icon: <ReceiptLongIcon />,
-    iconBgKey: "primary.main" as const,
-  },
-  {
-    title: "Pending Transactions",
-    value: "1",
-    icon: <CurrencyExchangeIcon />,
-    iconBgKey: "warning.main" as const,
-  },
-];
-
-const transactions: Transaction[] = [
-  {
-    name: "Payment from John Smith",
-    date: "Mar 28, 2026",
-    status: "completed",
-    amount: "+$2,500.00",
-    positive: true,
-    iconBgKey: "success.light",
-  },
-  {
-    name: "Transfer to Sarah Johnson",
-    date: "Mar 27, 2026",
-    status: "completed",
-    amount: "-$850.00",
-    positive: false,
-    iconBgKey: "error.light",
-  },
-  {
-    name: "Subscription Payment",
-    date: "Mar 26, 2026",
-    status: "completed",
-    amount: "-$49.99",
-    positive: false,
-    iconBgKey: "error.light",
-  },
-  {
-    name: "Salary Deposit",
-    date: "Mar 25, 2026",
-    status: "completed",
-    amount: "+$5,200.00",
-    positive: true,
-    iconBgKey: "success.light",
-  },
-  {
-    name: "Online Purchase",
-    date: "Mar 24, 2026",
-    status: "pending",
-    amount: "-$129.99",
-    positive: false,
-    iconBgKey: "error.light",
-  },
-];
+import { fetchSummaryTransactions } from "../api/transactions";
+import { useBeneficiary } from "../contexts/BeneficiaryContext";
 
 const barLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
 const barValues = [450, 320, 510, 380, 420, 550, 600];
@@ -93,6 +22,54 @@ const pieValues = [45, 25, 20, 10];
 
 export default function DashboardPage() {
   const theme = useTheme();
+  const { beneficiaries } = useBeneficiary();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchSummaryTransactions({ signal: controller.signal })
+      .then(setTransactions)
+      .catch((e) => {
+        if (e.name !== "AbortError") console.error(e);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const pendingCount = transactions.filter((t) => t.status === "pending").length;
+
+  const statCards = [
+    {
+      title: "Total Balance",
+      value: "$45,231.89",
+      change: "+20.1%",
+      positive: true,
+      icon: <AccountBalanceWalletIcon />,
+      iconBgKey: "secondary.main" as const,
+    },
+    {
+      title: "Total Beneficiaries",
+      value: String(beneficiaries.length),
+      icon: <GroupIcon />,
+      iconBgKey: "success.main" as const,
+      to: "/beneficiaries",
+    },
+    {
+      title: "Transactions",
+      value: "12,234",
+      change: "+12.5%",
+      positive: true,
+      icon: <ReceiptLongIcon />,
+      iconBgKey: "primary.main" as const,
+      to: "/transactions",
+    },
+    {
+      title: "Pending Transactions",
+      value: String(pendingCount),
+      icon: <CurrencyExchangeIcon />,
+      iconBgKey: "warning.main" as const,
+      to: "/transactions?status=pending",
+    },
+  ];
 
   return (
     <Box sx={{ p: 4 }}>
