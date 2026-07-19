@@ -55,7 +55,7 @@ export default function DashboardPage() {
     },
     {
       title: "Transactions",
-      value: "12,234",
+      value: String(transactions.length),
       change: "+12.5%",
       positive: true,
       icon: <ReceiptLongIcon />,
