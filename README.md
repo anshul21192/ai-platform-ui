@@ -52,12 +52,12 @@ pnpm lint
 
 ## Pages
 
-| Route | Description |
-|---|---|
-| `/` | Dashboard with activity summary |
-| `/beneficiaries` | List and manage beneficiaries |
-| `/manageBeneficiary` | Add or edit a beneficiary |
-| `/transactions` | View transaction history |
-| `/payments/send-money` | Send money to a beneficiary |
+| Route                     | Description                      |
+| ------------------------- | -------------------------------- |
+| `/`                       | Dashboard with activity summary  |
+| `/beneficiaries`          | List and manage beneficiaries    |
+| `/manageBeneficiary`      | Add or edit a beneficiary        |
+| `/transactions`           | View transaction history         |
+| `/payments/send-money`    | Send money to a beneficiary      |
 | `/payments/request-money` | Request money from a beneficiary |
-| `/settings` | User settings |
+| `/settings`               | User settings                    |
