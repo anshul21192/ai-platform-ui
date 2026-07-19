@@ -86,7 +86,6 @@ export default function ManageBeneficiaryPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true }, input: { readOnly: isEdit } }}
-                sx={{ "& .MuiOutlinedInput-root": {} }}
               />
 
               <TextField
@@ -97,7 +96,6 @@ export default function ManageBeneficiaryPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ "& .MuiOutlinedInput-root": {} }}
               />
 
               <TextField
@@ -107,7 +105,6 @@ export default function ManageBeneficiaryPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ "& .MuiOutlinedInput-root": {} }}
               />
 
               <Autocomplete
@@ -122,7 +119,6 @@ export default function ManageBeneficiaryPage() {
                     label="Bank Name"
                     placeholder="Search or type bank name"
                     slotProps={{ inputLabel: { shrink: true } }}
-                    sx={{ "& .MuiOutlinedInput-root": {} }}
                   />
                 )}
               />
@@ -134,7 +130,6 @@ export default function ManageBeneficiaryPage() {
                 value={account}
                 onChange={(e) => setAccount(e.target.value.replace(/\D/g, ""))}
                 slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ "& .MuiOutlinedInput-root": {} }}
               />
 
               <Box sx={{ display: "flex", gap: 2, mt: 1 }}>

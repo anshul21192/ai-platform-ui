@@ -118,7 +118,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                 position: "absolute",
                 bottom: 0,
                 right: "calc(50% - 48px)",
-                border: "2px solid white",
+                border: "2px solid", borderColor: "common.white",
                 "& svg": { width: 12, height: 12 },
               }}
             >

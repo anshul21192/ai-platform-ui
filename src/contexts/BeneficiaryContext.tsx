@@ -70,13 +70,13 @@ export function BeneficiaryProvider({ children }: { children: React.ReactNode })
   const navigateToAdd = useCallback(() => {
     sessionStorage.removeItem(SESSION_KEY);
     setEditingBeneficiary(null);
-    navigate("/manageBeneficiary");
+    navigate("/manage-beneficiary");
   }, [navigate]);
 
   const navigateToEdit = useCallback((beneficiary: Beneficiary) => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(beneficiary));
     setEditingBeneficiary(beneficiary);
-    navigate("/manageBeneficiary");
+    navigate("/manage-beneficiary");
   }, [navigate]);
 
   const clearEditing = useCallback(() => {
@@ -106,16 +106,4 @@ export function useBeneficiary() {
   const context = useContext(BeneficiaryContext);
   if (!context) throw new Error("useBeneficiary must be used within BeneficiaryProvider");
   return context;
-}
-
-export function getRandomGradient() {
-  const gradients = [
-    "linear-gradient(135deg, #2b7fff 0%, #155dfc 100%)",
-    "linear-gradient(135deg, #ad46ff 0%, #9810fa 100%)",
-    "linear-gradient(135deg, #00c950 0%, #00a63e 100%)",
-    "linear-gradient(135deg, #f6339a 0%, #e60076 100%)",
-    "linear-gradient(135deg, #ff6900 0%, #f54900 100%)",
-    "linear-gradient(135deg, #00bba7 0%, #009689 100%)",
-  ];
-  return gradients[Math.floor(Math.random() * gradients.length)];
 }

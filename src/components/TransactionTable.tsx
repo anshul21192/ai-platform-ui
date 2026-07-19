@@ -39,7 +39,7 @@ function resolveColor(key: string, theme: Theme): string {
   const parts = key.split(".");
   if (parts.length === 2) {
     const [group, shade] = parts;
-    const paletteGroup = (theme.palette as unknown as Record<string, unknown>)[group];
+    const paletteGroup = theme.palette[group as keyof typeof theme.palette];
     if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as Record<string, string>)) {
       return (paletteGroup as Record<string, string>)[shade];
     }
@@ -57,12 +57,12 @@ function defaultRenderCell(tx: Transaction, colKey: string, theme: Theme) {
               width: 40,
               height: 40,
               borderRadius: "50%",
-              bgcolor: tx.iconBg ?? (tx.iconBgKey ? resolveColor(tx.iconBgKey, theme) : tx.positive ? "#dcfce7" : "#ffe2e2"),
+              bgcolor: tx.iconBg ?? (tx.iconBgKey ? resolveColor(tx.iconBgKey, theme) : tx.positive ? "success.light" : "error.light"),
               color: "inherit",
               "& svg": { fontSize: 20 },
             }}
           >
-            {tx.positive ? <AddIcon sx={{ color: "#016630" }} /> : <RemoveIcon sx={{ color: "#dc2626" }} />}
+            {tx.positive ? <AddIcon sx={{ color: "success.dark" }} /> : <RemoveIcon sx={{ color: "error.dark" }} />}
           </Avatar>
           <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary" }}>
             {tx.name}
@@ -80,7 +80,7 @@ function defaultRenderCell(tx: Transaction, colKey: string, theme: Theme) {
             bgcolor: theme.palette.grey[100],
             fontSize: 12,
             fontWeight: 500,
-            color: "#1e2939",
+            color: "grey.700",
           }}
         >
           {tx.category}
@@ -160,8 +160,8 @@ export default function TransactionTable({ title, transactions, columns }: Trans
           </TableRow>
         </TableHead>
         <TableBody>
-          {transactions.map((tx, i) => (
-            <TableRow key={i} sx={{ borderBottom: `1px solid ${theme.palette.grey[100]}` }}>
+          {transactions.map((tx) => (
+            <TableRow key={`${tx.name}-${tx.date}`} sx={{ borderBottom: `1px solid ${theme.palette.grey[100]}` }}>
               {cols.map((col) => (
                 <TableCell
                   key={col.key}

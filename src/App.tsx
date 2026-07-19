@@ -34,7 +34,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/beneficiaries" element={<BeneficiariesPage />} />
-              <Route path="/manageBeneficiary" element={<ManageBeneficiaryPage />} />
+              <Route path="/manage-beneficiary" element={<ManageBeneficiaryPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/payments/send-money" element={<SendMoneyPage />} />

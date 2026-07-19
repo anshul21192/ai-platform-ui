@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { Box, Typography, TextField, Button, Card, CardContent, Switch, useTheme } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
@@ -10,6 +10,52 @@ import TuneIcon from "@mui/icons-material/Tune";
 const languages = ["English", "Spanish", "French", "German", "Hindi"];
 const currencies = ["USD - US Dollar", "EUR - Euro", "GBP - British Pound", "INR - Indian Rupee", "JPY - Japanese Yen"];
 const timezones = ["UTC-05:00 Eastern Time", "UTC-06:00 Central Time", "UTC-07:00 Mountain Time", "UTC-08:00 Pacific Time", "UTC+00:00 GMT", "UTC+05:30 India"];
+
+interface SettingsState {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  transactionAlerts: boolean;
+  weeklySummary: boolean;
+  twoFactor: boolean;
+  language: string;
+  currency: string;
+  timezone: string;
+}
+
+type SettingsAction =
+  | { type: "SET_FIELD"; field: keyof SettingsState; value: string | boolean };
+
+const initialState: SettingsState = {
+  firstName: "John",
+  lastName: "Doe",
+  email: "john@example.com",
+  phone: "+1 (555) 123-4567",
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+  emailNotifications: true,
+  pushNotifications: true,
+  transactionAlerts: false,
+  weeklySummary: true,
+  twoFactor: false,
+  language: "English",
+  currency: "USD - US Dollar",
+  timezone: "UTC-05:00 Eastern Time",
+};
+
+function settingsReducer(state: SettingsState, action: SettingsAction): SettingsState {
+  switch (action.type) {
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value };
+  }
+}
 
 interface SectionHeaderProps {
   iconBg: string;
@@ -42,7 +88,7 @@ interface FieldRowProps {
 function FieldRow({ label, placeholder, value, onChange, type = "text" }: FieldRowProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", lineHeight: "14px" }}>{label}</Typography>
+      <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "14px" }}>{label}</Typography>
       <TextField
         fullWidth
         placeholder={placeholder}
@@ -51,7 +97,7 @@ function FieldRow({ label, placeholder, value, onChange, type = "text" }: FieldR
         onChange={(e) => onChange(e.target.value)}
         sx={{
           "& .MuiOutlinedInput-root": {
-            bgcolor: "#f3f3f5",
+            bgcolor: "grey.50",
             "& fieldset": { border: "none" },
             "&:hover fieldset": { border: "none" },
             "&.Mui-focused fieldset": { border: "none" },
@@ -95,25 +141,9 @@ function ToggleRow({ title, description, checked, onChange }: ToggleRowProps) {
 
 export default function SettingsPage() {
   const theme = useTheme();
-
-  const [firstName, setFirstName] = useState("John");
-  const [lastName, setLastName] = useState("Doe");
-  const [email, setEmail] = useState("john@example.com");
-  const [phone, setPhone] = useState("+1 (555) 123-4567");
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [transactionAlerts, setTransactionAlerts] = useState(false);
-  const [weeklySummary, setWeeklySummary] = useState(true);
-  const [twoFactor, setTwoFactor] = useState(false);
-
-  const [language, setLanguage] = useState("English");
-  const [currency, setCurrency] = useState("USD - US Dollar");
-  const [timezone, setTimezone] = useState("UTC-05:00 Eastern Time");
+  const [state, dispatch] = useReducer(settingsReducer, initialState);
+  const set = (field: keyof SettingsState) => (value: string | boolean) =>
+    dispatch({ type: "SET_FIELD", field, value });
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
@@ -136,28 +166,26 @@ export default function SettingsPage() {
         <Grid size={{ md: 8, lg: 6 }}>
           <Card variant="outlined" sx={cardSx}>
             <CardContent sx={{ p: "25px !important", display: "flex", flexDirection: "column" }}>
-              <SectionHeader iconBg="#dbeafe" icon={<PersonOutlineIcon sx={{ fontSize: 20, color: "#2563eb" }} />} title="Profile Settings" />
+              <SectionHeader iconBg="primary.light" icon={<PersonOutlineIcon sx={{ fontSize: 20, color: "primary.main" }} />} title="Profile Settings" />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <Box sx={{ display: "flex", gap: 3 }}>
                   <Box sx={{ flex: 1 }}>
-                    <FieldRow label="First Name" value={firstName} onChange={setFirstName} />
+                    <FieldRow label="First Name" value={state.firstName} onChange={set("firstName")} />
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <FieldRow label="Last Name" value={lastName} onChange={setLastName} />
+                    <FieldRow label="Last Name" value={state.lastName} onChange={set("lastName")} />
                   </Box>
                 </Box>
-                <FieldRow label="Email" value={email} onChange={setEmail} type="email" />
-                <FieldRow label="Phone Number" value={phone} onChange={setPhone} />
+                <FieldRow label="Email" value={state.email} onChange={set("email")} type="email" />
+                <FieldRow label="Phone Number" value={state.phone} onChange={set("phone")} />
                 <Button
                   variant="contained"
                     sx={{
-                      bgcolor: "#155dfc",
                       height: 36,
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
                       boxShadow: "none",
-                      "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
                     }}
                   >
                     Save Changes
@@ -171,12 +199,12 @@ export default function SettingsPage() {
         <Grid size={{ md: 8, lg: 6 }}>
           <Card variant="outlined" sx={cardSx}>
             <CardContent sx={{ p: "25px !important", display: "flex", flexDirection: "column" }}>
-              <SectionHeader iconBg="#f3e8ff" icon={<NotificationsNoneIcon sx={{ fontSize: 20, color: "#9333ea" }} />} title="Notifications" />
+              <SectionHeader iconBg="secondary.light" icon={<NotificationsNoneIcon sx={{ fontSize: 20, color: "secondary.main" }} />} title="Notifications" />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <ToggleRow title="Email Notifications" description="Receive email updates about your account" checked={emailNotifications} onChange={setEmailNotifications} />
-                <ToggleRow title="Push Notifications" description="Receive push notifications on your device" checked={pushNotifications} onChange={setPushNotifications} />
-                <ToggleRow title="Transaction Alerts" description="Get notified about every transaction" checked={transactionAlerts} onChange={setTransactionAlerts} />
-                <ToggleRow title="Weekly Summary" description="Receive a weekly summary of your activity" checked={weeklySummary} onChange={setWeeklySummary} />
+                <ToggleRow title="Email Notifications" description="Receive email updates about your account" checked={state.emailNotifications} onChange={set("emailNotifications")} />
+                <ToggleRow title="Push Notifications" description="Receive push notifications on your device" checked={state.pushNotifications} onChange={set("pushNotifications")} />
+                <ToggleRow title="Transaction Alerts" description="Get notified about every transaction" checked={state.transactionAlerts} onChange={set("transactionAlerts")} />
+                <ToggleRow title="Weekly Summary" description="Receive a weekly summary of your activity" checked={state.weeklySummary} onChange={set("weeklySummary")} />
               </Box>
             </CardContent>
           </Card>
@@ -186,22 +214,20 @@ export default function SettingsPage() {
         <Grid size={{ md: 8, lg: 6 }}>
           <Card variant="outlined" sx={cardSx}>
             <CardContent sx={{ p: "25px !important", display: "flex", flexDirection: "column" }}>
-              <SectionHeader iconBg="#ffe2e2" icon={<ShieldOutlinedIcon sx={{ fontSize: 20, color: "#dc2626" }} />} title="Security" />
+              <SectionHeader iconBg="error.light" icon={<ShieldOutlinedIcon sx={{ fontSize: 20, color: "error.main" }} />} title="Security" />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <FieldRow label="Current Password" value={currentPassword} onChange={setCurrentPassword} type="password" />
-                <FieldRow label="New Password" value={newPassword} onChange={setNewPassword} type="password" />
-                <FieldRow label="Confirm New Password" value={confirmPassword} onChange={setConfirmPassword} type="password" />
-                <ToggleRow title="Two-Factor Authentication" description="Add an extra layer of security" checked={twoFactor} onChange={setTwoFactor} />
+                <FieldRow label="Current Password" value={state.currentPassword} onChange={set("currentPassword")} type="password" />
+                <FieldRow label="New Password" value={state.newPassword} onChange={set("newPassword")} type="password" />
+                <FieldRow label="Confirm New Password" value={state.confirmPassword} onChange={set("confirmPassword")} type="password" />
+                <ToggleRow title="Two-Factor Authentication" description="Add an extra layer of security" checked={state.twoFactor} onChange={set("twoFactor")} />
                 <Button
                   variant="contained"
                     sx={{
-                      bgcolor: "#155dfc",
                       height: 36,
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
                       boxShadow: "none",
-                      "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
                     }}
                   >
                     Update Password
@@ -215,14 +241,14 @@ export default function SettingsPage() {
         <Grid size={{ md: 8, lg: 6 }}>
           <Card variant="outlined" sx={cardSx}>
             <CardContent sx={{ p: "25px !important", display: "flex", flexDirection: "column" }}>
-              <SectionHeader iconBg="#dcfce7" icon={<CreditCardOutlinedIcon sx={{ fontSize: 20, color: "#16a34a" }} />} title="Payment Methods" />
+              <SectionHeader iconBg="success.light" icon={<CreditCardOutlinedIcon sx={{ fontSize: 20, color: "success.main" }} />} title="Payment Methods" />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    border: `1px solid rgba(0,0,0,0.1)`,
+                    border: `1px solid`, borderColor: "divider",
                     px: "17px",
                     py: 1,
                   }}
@@ -238,7 +264,7 @@ export default function SettingsPage() {
                         justifyContent: "center",
                       }}
                     >
-                      <Typography sx={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>VISA</Typography>
+                      <Typography sx={{ fontSize: 12, fontWeight: 700, color: "common.white" }}>VISA</Typography>
                     </Box>
                     <Box>
                       <Typography sx={{ fontSize: 16, fontWeight: 500, color: "text.primary", lineHeight: "24px" }}>
@@ -257,9 +283,9 @@ export default function SettingsPage() {
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
-                      color: "#0a0a0a",
-                      borderColor: "rgba(0,0,0,0.1)",
-                      "&:hover": { borderColor: "rgba(0,0,0,0.2)", bgcolor: "grey.50" },
+                      color: "text.primary",
+                      borderColor: "divider",
+                      "&:hover": { borderColor: "grey.300", bgcolor: "grey.50" },
                     }}
                   >
                     Remove
@@ -273,9 +299,9 @@ export default function SettingsPage() {
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
-                      color: "#0a0a0a",
-                      borderColor: "rgba(0,0,0,0.1)",
-                      "&:hover": { borderColor: "rgba(0,0,0,0.2)", bgcolor: "grey.50" },
+                      color: "text.primary",
+                      borderColor: "divider",
+                      "&:hover": { borderColor: "grey.300", bgcolor: "grey.50" },
                     }}
                   >
                     Add Payment Method
@@ -289,19 +315,19 @@ export default function SettingsPage() {
         <Grid size={{ md: 8, lg: 6 }}>
           <Card variant="outlined" sx={cardSx}>
             <CardContent sx={{ p: "25px !important", display: "flex", flexDirection: "column" }}>
-              <SectionHeader iconBg="#ffedd4" icon={<TuneIcon sx={{ fontSize: 20, color: "#ea580c" }} />} title="Preferences" />
+              <SectionHeader iconBg="warning.light" icon={<TuneIcon sx={{ fontSize: 20, color: "warning.dark" }} />} title="Preferences" />
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", lineHeight: "14px" }}>Language</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "14px" }}>Language</Typography>
                   <TextField
                     select
                     fullWidth
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
+                    value={state.language}
+                    onChange={(e) => set("language")(e.target.value)}
                     slotProps={{ select: { native: true } }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        "& fieldset": { borderColor: "#d1d5dc" },
+                        "& fieldset": { borderColor: "grey.300" },
                       },
                       "& .MuiInputBase-input": { fontSize: 14, py: "8px", px: "12px" },
                     }}
@@ -310,16 +336,16 @@ export default function SettingsPage() {
                   </TextField>
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", lineHeight: "14px" }}>Currency</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "14px" }}>Currency</Typography>
                   <TextField
                     select
                     fullWidth
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
+                    value={state.currency}
+                    onChange={(e) => set("currency")(e.target.value)}
                     slotProps={{ select: { native: true } }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        "& fieldset": { borderColor: "#d1d5dc" },
+                        "& fieldset": { borderColor: "grey.300" },
                       },
                       "& .MuiInputBase-input": { fontSize: 14, py: "8px", px: "12px" },
                     }}
@@ -328,16 +354,16 @@ export default function SettingsPage() {
                   </TextField>
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", lineHeight: "14px" }}>Timezone</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "14px" }}>Timezone</Typography>
                   <TextField
                     select
                     fullWidth
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
+                    value={state.timezone}
+                    onChange={(e) => set("timezone")(e.target.value)}
                     slotProps={{ select: { native: true } }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        "& fieldset": { borderColor: "#d1d5dc" },
+                        "& fieldset": { borderColor: "grey.300" },
                       },
                       "& .MuiInputBase-input": { fontSize: 14, py: "8px", px: "12px" },
                     }}

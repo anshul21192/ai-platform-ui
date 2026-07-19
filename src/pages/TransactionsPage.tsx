@@ -87,14 +87,12 @@ export default function TransactionsPage() {
               variant="contained"
               startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
                 sx={{
-                  bgcolor: "#155dfc",
                   height: 36,
                   fontSize: 14,
                   fontWeight: 500,
                   textTransform: "none",
                   boxShadow: "none",
                   px: 2,
-                  "&:hover": { bgcolor: "#1250d6", boxShadow: "none" },
                 }}
             >
               Export
@@ -119,7 +117,7 @@ export default function TransactionsPage() {
                   }}
                     sx={{
                       "& .MuiOutlinedInput-root": {
-                        bgcolor: "#f3f3f5",
+                        bgcolor: "grey.50",
                         "& fieldset": { border: "none" },
                         "&:hover fieldset": { border: "none" },
                         "&.Mui-focused fieldset": { border: "none" },
@@ -143,11 +141,11 @@ export default function TransactionsPage() {
                       fontSize: 14,
                       fontWeight: 500,
                       textTransform: "none",
-                      color: isFilterActive ? "#155dfc" : "#0a0a0a",
-                      borderColor: isFilterActive ? "#155dfc" : "rgba(0,0,0,0.1)",
+                      color: isFilterActive ? "primary.main" : "text.primary",
+                      borderColor: isFilterActive ? "primary.main" : "divider",
                       flexShrink: 0,
                       "&:hover": {
-                        borderColor: isFilterActive ? "#1250d6" : "rgba(0,0,0,0.2)",
+                        borderColor: isFilterActive ? "primary.dark" : "grey.300",
                         bgcolor: "grey.50",
                       },
                     }}
@@ -164,9 +162,9 @@ export default function TransactionsPage() {
                     fontSize: 14,
                     fontWeight: 500,
                     textTransform: "none",
-                    color: "#ef4444",
+                    color: "error.main",
                     flexShrink: 0,
-                    "&:hover": { bgcolor: "rgba(239,68,68,0.08)" },
+                    "&:hover": { bgcolor: "error.light" },
                   }}
                 >
                   Clear filters
@@ -198,7 +196,7 @@ export default function TransactionsPage() {
                             checked={statusFilters.includes(option.value)}
                             onChange={() => handleFilterToggle(option.value)}
                             size="small"
-                            sx={{ "&.Mui-checked": { color: "#155dfc" } }}
+                            sx={{ "&.Mui-checked": { color: "primary.main" } }}
                           />
                         }
                         label={
