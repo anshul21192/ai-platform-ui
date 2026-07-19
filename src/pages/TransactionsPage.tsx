@@ -108,6 +108,7 @@ export default function TransactionsPage() {
                 <TextField
                   fullWidth
                   placeholder="Search transactions..."
+                  aria-label="Search transactions"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   slotProps={{

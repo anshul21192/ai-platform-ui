@@ -183,6 +183,8 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                         size="small"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-pressed={showPassword}
                         sx={{ color: "grey.400" }}
                       >
                         {showPassword ? (

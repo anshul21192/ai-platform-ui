@@ -83,7 +83,7 @@ export default function PaymentForm({ config }: PaymentFormProps) {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 4, p: 4 }}>
+    <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 4, p: 4 }} onSubmit={(e) => e.preventDefault()}>
       {/* Header */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Typography
@@ -228,13 +228,14 @@ export default function PaymentForm({ config }: PaymentFormProps) {
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {/* Name Field */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Typography sx={labelSx}>{config.nameFieldLabel}</Typography>
+                <Typography component="label" htmlFor="payment-recipient-name" sx={labelSx}>{config.nameFieldLabel}</Typography>
                 <Box sx={{ position: "relative" }}>
                   <PersonOutlineIcon
                     sx={{ position: "absolute", left: "12px", top: "8px", fontSize: 20, color: "text.secondary", zIndex: 1 }}
                   />
                   <TextField
                     fullWidth
+                    id="payment-recipient-name"
                     placeholder={config.nameFieldPlaceholder}
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
@@ -251,9 +252,10 @@ export default function PaymentForm({ config }: PaymentFormProps) {
 
               {/* Account Number / Email */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Typography sx={labelSx}>Account Number / Email</Typography>
+                <Typography component="label" htmlFor="payment-account-number" sx={labelSx}>Account Number / Email</Typography>
                 <TextField
                   fullWidth
+                  id="payment-account-number"
                   placeholder="Enter account number or email"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
@@ -263,13 +265,14 @@ export default function PaymentForm({ config }: PaymentFormProps) {
 
               {/* Amount */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Typography sx={labelSx}>Amount *</Typography>
+                <Typography component="label" htmlFor="payment-amount" sx={labelSx}>Amount *</Typography>
                 <Box sx={{ position: "relative" }}>
                   <AttachMoneyIcon
                     sx={{ position: "absolute", left: "12px", top: "8px", fontSize: 20, color: "text.secondary", zIndex: 1 }}
                   />
                   <TextField
                     fullWidth
+                    id="payment-amount"
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -286,9 +289,10 @@ export default function PaymentForm({ config }: PaymentFormProps) {
 
               {/* Currency */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Typography sx={labelSx}>Currency</Typography>
+                <Typography component="label" htmlFor="payment-currency" sx={labelSx}>Currency</Typography>
                 <Select
                   fullWidth
+                  id="payment-currency"
                   value={currency}
                   onChange={handleCurrencyChange}
                   sx={{
@@ -308,9 +312,10 @@ export default function PaymentForm({ config }: PaymentFormProps) {
 
               {/* Note */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Typography sx={labelSx}>Note (Optional)</Typography>
+                <Typography component="label" htmlFor="payment-note" sx={labelSx}>Note (Optional)</Typography>
                 <TextField
                   fullWidth
+                  id="payment-note"
                   multiline
                   rows={3}
                   placeholder="Add a note..."
@@ -329,6 +334,7 @@ export default function PaymentForm({ config }: PaymentFormProps) {
 
               {/* Submit Button */}
               <Button
+                type="submit"
                 variant="contained"
                 fullWidth
                 startIcon={config.actionIcon}

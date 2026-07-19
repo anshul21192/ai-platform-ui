@@ -24,6 +24,7 @@ export default function PageLayout({ children }: { children: React.ReactNode }) 
             <IconButton
               edge="start"
               onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation menu"
               sx={{ mr: 1 }}
             >
               <MenuIcon sx={{ color: "text.primary" }} />

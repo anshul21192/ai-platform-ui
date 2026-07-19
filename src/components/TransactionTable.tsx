@@ -137,7 +137,7 @@ export default function TransactionTable({ title, transactions, columns }: Trans
           {title}
         </Typography>
       )}
-      <Table sx={{ width: "100%" }}>
+      <Table sx={{ width: "100%" }} aria-label={title ?? "Transactions"}>
         <TableHead>
           <TableRow sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
             {cols.map((col) => (

@@ -124,6 +124,7 @@ export default function BeneficiariesPage() {
           <TextField
             fullWidth
             placeholder="Search beneficiaries..."
+            aria-label="Search beneficiaries"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             variant="outlined"

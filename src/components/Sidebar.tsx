@@ -79,6 +79,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: (path: string) => void })
             <Box key={item.label} sx={{ display: "flex", flexDirection: "column" }}>
               <ListItemButton
                 disabled={item.disabled}
+                aria-expanded={item.expandable ? isExpanded : undefined}
                 onClick={() => {
                   if (item.disabled) return;
                   if (item.expandable && item.children) {
@@ -235,7 +236,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
-    <IconButton onClick={onClick} sx={{ display: { md: "none" } }}>
+    <IconButton onClick={onClick} aria-label="Open navigation menu" sx={{ display: { md: "none" } }}>
       <MenuIcon />
     </IconButton>
   );

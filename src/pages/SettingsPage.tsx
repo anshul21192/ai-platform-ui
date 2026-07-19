@@ -86,11 +86,13 @@ interface FieldRowProps {
 }
 
 function FieldRow({ label, placeholder, value, onChange, type = "text" }: FieldRowProps) {
+  const fieldId = `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "14px" }}>{label}</Typography>
+      <Typography component="label" htmlFor={fieldId} sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "14px" }}>{label}</Typography>
       <TextField
         fullWidth
+        id={fieldId}
         placeholder={placeholder}
         type={type}
         value={value}
@@ -117,15 +119,17 @@ interface ToggleRowProps {
 }
 
 function ToggleRow({ title, description, checked, onChange }: ToggleRowProps) {
+  const toggleId = `toggle-${title.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 0.5 }}>
       <Box>
-        <Typography sx={{ fontSize: 16, fontWeight: 500, color: "text.primary", lineHeight: "24px" }}>{title}</Typography>
-        <Typography sx={{ fontSize: 14, color: "text.secondary", lineHeight: "20px", mt: 0.5 }}>{description}</Typography>
+        <Typography id={`${toggleId}-label`} sx={{ fontSize: 16, fontWeight: 500, color: "text.primary", lineHeight: "24px" }}>{title}</Typography>
+        <Typography id={`${toggleId}-description`} sx={{ fontSize: 14, color: "text.secondary", lineHeight: "20px", mt: 0.5 }}>{description}</Typography>
       </Box>
       <Switch
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
+        inputProps={{ "aria-labelledby": `${toggleId}-label`, "aria-describedby": `${toggleId}-description` }}
         sx={{
           width: 40,
           height: 22,

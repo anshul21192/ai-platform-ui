@@ -33,6 +33,7 @@ export default function StatCard({ title, value, change, positive, icon, iconBgK
       variant="outlined"
       role={to ? "link" : undefined}
       tabIndex={to ? 0 : undefined}
+      aria-label={to ? `${title}: ${value}. Navigate to ${to}` : undefined}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       sx={{
