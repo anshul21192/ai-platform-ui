@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, TextField, Button, Autocomplete, Card, CardContent } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useBeneficiary, getRandomGradient } from "../contexts/BeneficiaryContext";
+import { useBeneficiary } from "../contexts/BeneficiaryContext";
 
 const banks = [
   "State Bank of India",
@@ -21,7 +21,7 @@ const banks = [
 
 export default function ManageBeneficiaryPage() {
   const navigate = useNavigate();
-  const { editingBeneficiary } = useBeneficiary();
+  const { editingBeneficiary, addBeneficiary, updateBeneficiary, clearEditing } = useBeneficiary();
   const isEdit = editingBeneficiary !== null;
 
   const [name, setName] = useState("");
@@ -41,19 +41,13 @@ export default function ManageBeneficiaryPage() {
   }, [editingBeneficiary]);
 
   const handleSave = () => {
-    const event = new CustomEvent("beneficiary-saved", {
-      detail: {
-        id: editingBeneficiary?.id,
-        name,
-        email,
-        phone,
-        bank,
-        account,
-        initials: name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2),
-        gradient: editingBeneficiary?.gradient ?? getRandomGradient(),
-      },
-    });
-    window.dispatchEvent(event);
+    const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+    if (isEdit && editingBeneficiary) {
+      updateBeneficiary({ ...editingBeneficiary, name, email, phone, bank, account, initials });
+    } else {
+      addBeneficiary({ name, email, phone, bank, account, initials });
+    }
+    clearEditing();
     navigate("/beneficiaries");
   };
 

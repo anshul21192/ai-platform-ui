@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -16,104 +16,13 @@ import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BeneficiaryCard from "../components/BeneficiaryCard";
-import { useBeneficiary } from "../contexts/BeneficiaryContext";
-
-interface Beneficiary {
-  id: number;
-  name: string;
-  initials: string;
-  email: string;
-  phone: string;
-  bank: string;
-  account: string;
-  gradient: string;
-}
-
-const initialBeneficiaries: Beneficiary[] = [
-  {
-    id: 1,
-    name: "John Smith",
-    initials: "JS",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    bank: "JPMorgan Chase",
-    account: "****1234",
-    gradient: "linear-gradient(135deg, #2b7fff 0%, #155dfc 100%)",
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    initials: "SJ",
-    email: "sarah@example.com",
-    phone: "+1 (555) 234-5678",
-    bank: "Bank of America",
-    account: "****5678",
-    gradient: "linear-gradient(135deg, #ad46ff 0%, #9810fa 100%)",
-  },
-  {
-    id: 3,
-    name: "Michael Brown",
-    initials: "MB",
-    email: "michael@example.com",
-    phone: "+1 (555) 345-6789",
-    bank: "Wells Fargo",
-    account: "****9012",
-    gradient: "linear-gradient(135deg, #00c950 0%, #00a63e 100%)",
-  },
-  {
-    id: 4,
-    name: "Emily Davis",
-    initials: "ED",
-    email: "emily@example.com",
-    phone: "+1 (555) 456-7890",
-    bank: "Citibank",
-    account: "****3456",
-    gradient: "linear-gradient(135deg, #f6339a 0%, #e60076 100%)",
-  },
-  {
-    id: 5,
-    name: "David Wilson",
-    initials: "DW",
-    email: "david@example.com",
-    phone: "+1 (555) 567-8901",
-    bank: "Bank of America",
-    account: "****7890",
-    gradient: "linear-gradient(135deg, #ff6900 0%, #f54900 100%)",
-  },
-  {
-    id: 6,
-    name: "Jessica Miller",
-    initials: "JM",
-    email: "jessica@example.com",
-    phone: "+1 (555) 678-9012",
-    bank: "Deutsche Bank",
-    account: "****2345",
-    gradient: "linear-gradient(135deg, #00bba7 0%, #009689 100%)",
-  },
-];
+import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
 
 export default function BeneficiariesPage() {
   const [search, setSearch] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuTarget, setMenuTarget] = useState<Beneficiary | null>(null);
-  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>(initialBeneficiaries);
-  const { navigateToAdd, navigateToEdit } = useBeneficiary();
-
-  useEffect(() => {
-    const handleSave = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setBeneficiaries((prev) => {
-        const existing = prev.find((b) => b.id === detail.id);
-        if (existing) {
-          return prev.map((b) => (b.id === detail.id ? { ...b, ...detail } : b));
-        }
-        const newId = Math.max(0, ...prev.map((b) => b.id)) + 1;
-        return [...prev, { ...detail, id: newId }];
-      });
-    };
-    window.addEventListener("beneficiary-saved", handleSave);
-    return () => window.removeEventListener("beneficiary-saved", handleSave);
-  }, []);
+  const { beneficiaries, removeBeneficiary, navigateToAdd, navigateToEdit } = useBeneficiary();
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, beneficiary: Beneficiary) => {
     setMenuAnchor(e.currentTarget);
@@ -134,7 +43,7 @@ export default function BeneficiariesPage() {
 
   const handleDelete = () => {
     if (menuTarget) {
-      setBeneficiaries((prev) => prev.filter((b) => b.id !== menuTarget.id));
+      removeBeneficiary(menuTarget.id);
     }
     handleMenuClose();
   };

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Drawer, Box, Typography, Avatar, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useTheme } from "@mui/material";
+import { Drawer, Box, Typography, Avatar, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Collapse, useTheme } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PaymentsIcon from "@mui/icons-material/Payments";
+import SendIcon from "@mui/icons-material/Send";
+import CallReceivedIcon from "@mui/icons-material/CallReceived";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import PeopleIcon from "@mui/icons-material/People";
@@ -18,7 +21,16 @@ const navItems = [
   { label: "Overview", icon: <DashboardIcon />, path: "/" },
   { label: "Transactions", icon: <SwapHorizIcon />, path: "/transactions" },
   { label: "Analytics", icon: <BarChartIcon />, path: "/analytics" },
-  { label: "Payments", icon: <PaymentsIcon />, expandable: true, path: "/payments" },
+  {
+    label: "Payments",
+    icon: <PaymentsIcon />,
+    expandable: true,
+    path: "/payments",
+    children: [
+      { label: "Send Money", icon: <SendIcon />, path: "/payments/send-money" },
+      { label: "Request Money", icon: <CallReceivedIcon />, path: "/payments/request-money" },
+    ],
+  },
   { label: "Bills", icon: <ReceiptIcon />, expandable: true, path: "/bills" },
   { label: "Cards", icon: <CreditCardIcon />, path: "/cards" },
   { label: "Beneficiaries", icon: <PeopleIcon />, path: "/beneficiaries" },
@@ -30,6 +42,13 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const toggleExpand = (label: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
+    );
+  };
 
   return (
     <Drawer
@@ -63,18 +82,26 @@ export default function Sidebar() {
         {/* Nav */}
         <List sx={{ flex: 1, pt: 2, px: 2, display: "flex", flexDirection: "column", gap: 0.5, overflow: "auto" }}>
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isExpanded = expandedItems.includes(item.label);
+            const isActive = location.pathname === item.path || 
+              (item.children && item.children.some((child) => location.pathname === child.path));
             return (
-              <ListItem key={item.label} disablePadding>
+              <Box key={item.label} sx={{ display: "flex", flexDirection: "column" }}>
                 <ListItemButton
-                  onClick={() => navigate(item.path)}
+                  onClick={() => {
+                    if (item.expandable && item.children) {
+                      toggleExpand(item.label);
+                    } else {
+                      navigate(item.path);
+                    }
+                  }}
                   sx={{
                     px: 2,
                     height: 48,
                     borderRadius: "10px",
-                    bgcolor: isActive ? "secondary.light" : "transparent",
-                    color: isActive ? "secondary.main" : "grey.700",
-                    "&:hover": { bgcolor: isActive ? "secondary.light" : "grey.0" },
+                    bgcolor: isActive && !item.children ? "secondary.light" : "transparent",
+                    color: isActive && !item.children ? "secondary.main" : "grey.700",
+                    "&:hover": { bgcolor: isActive && !item.children ? "secondary.light" : "grey.0" },
                     gap: 1,
                   }}
                 >
@@ -87,17 +114,62 @@ export default function Sidebar() {
                       primary: {
                         sx: {
                           fontSize: 16,
-                          fontWeight: isActive ? 500 : 400,
+                          fontWeight: isActive && !item.children ? 500 : 400,
                           lineHeight: "24px",
                         },
                       },
                     }}
                   />
                   {item.expandable && (
-                    <ArrowDropDownIcon sx={{ fontSize: 16, color: "grey.400" }} />
+                    <ArrowDropDownIcon
+                      sx={{
+                        fontSize: 16,
+                        color: "grey.400",
+                        transition: "transform 0.2s",
+                        transform: isExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                      }}
+                    />
                   )}
                 </ListItemButton>
-              </ListItem>
+                {item.children && (
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                      {item.children.map((child) => {
+                        const isChildActive = location.pathname === child.path;
+                        return (
+                          <ListItem key={child.label} disablePadding>
+                            <ListItemButton
+                              onClick={() => navigate(child.path)}
+                              sx={{
+                                pl: 6,
+                                pr: 2,
+                                height: 36,
+                                borderRadius: "10px",
+                                bgcolor: isChildActive ? "secondary.light" : "transparent",
+                                color: isChildActive ? "secondary.main" : "grey.600",
+                                "&:hover": { bgcolor: isChildActive ? "secondary.light" : "grey.0" },
+                              }}
+                            >
+                              <ListItemText
+                                primary={child.label}
+                                slotProps={{
+                                  primary: {
+                                    sx: {
+                                      fontSize: 14,
+                                      fontWeight: isChildActive ? 500 : 400,
+                                      lineHeight: "20px",
+                                    },
+                                  },
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </Collapse>
+                )}
+              </Box>
             );
           })}
         </List>
