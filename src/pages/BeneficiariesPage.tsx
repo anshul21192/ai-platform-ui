@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -19,6 +20,7 @@ import BeneficiaryCard from "../components/BeneficiaryCard";
 import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
 
 export default function BeneficiariesPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuTarget, setMenuTarget] = useState<Beneficiary | null>(null);
@@ -46,6 +48,14 @@ export default function BeneficiariesPage() {
       removeBeneficiary(menuTarget.id);
     }
     handleMenuClose();
+  };
+
+  const handleSendMoney = (beneficiary: Beneficiary) => {
+    navigate("/payments/send-money", { state: { beneficiary } });
+  };
+
+  const handleRequestMoney = (beneficiary: Beneficiary) => {
+    navigate("/payments/request-money", { state: { beneficiary } });
   };
 
   const filtered = beneficiaries.filter(
@@ -148,7 +158,7 @@ export default function BeneficiariesPage() {
         {/* Beneficiary Cards */}
         {filtered.map((b) => (
           <Grid key={b.id} size={{ md: 6, lg: 4 }}>
-            <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} />
+            <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} onSendMoney={() => handleSendMoney(b)} onRequestMoney={() => handleRequestMoney(b)} />
           </Grid>
         ))}
 

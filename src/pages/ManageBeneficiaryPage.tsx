@@ -126,10 +126,10 @@ export default function ManageBeneficiaryPage() {
               <TextField
                 fullWidth
                 label="Account Number"
-                placeholder="Enter account number"
+                placeholder="Enter 10-digit account number"
                 value={account}
-                onChange={(e) => setAccount(e.target.value.replace(/\D/g, ""))}
-                slotProps={{ inputLabel: { shrink: true } }}
+                onChange={(e) => setAccount(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                slotProps={{ inputLabel: { shrink: true }, input: { maxLength: 10 } }}
               />
 
               <Box sx={{ display: "flex", gap: 2, mt: 1 }}>

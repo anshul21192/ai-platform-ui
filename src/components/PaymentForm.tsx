@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -14,7 +15,7 @@ import {
 } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import { useBeneficiary } from "../contexts/BeneficiaryContext";
+import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
 
 const inputSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
@@ -52,11 +53,18 @@ interface PaymentFormProps {
   config: PaymentFormConfig;
 }
 
+function getInitialBeneficiary(location: ReturnType<typeof useLocation>) {
+  const state = location.state as { beneficiary?: Beneficiary } | null;
+  return state?.beneficiary ?? null;
+}
+
 export default function PaymentForm({ config }: PaymentFormProps) {
   const { beneficiaries } = useBeneficiary();
-  const [selectedRecipient, setSelectedRecipient] = useState<number | null>(null);
-  const [recipientName, setRecipientName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
+  const location = useLocation();
+  const initialBeneficiary = getInitialBeneficiary(location);
+  const [selectedRecipient, setSelectedRecipient] = useState<number | null>(() => initialBeneficiary?.id ?? null);
+  const [recipientName, setRecipientName] = useState(() => initialBeneficiary?.name ?? "");
+  const [accountNumber, setAccountNumber] = useState(() => initialBeneficiary?.email ?? "");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [note, setNote] = useState("");
@@ -123,7 +131,17 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                 {beneficiaries.map((recipient) => (
                   <Box
                     key={recipient.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleRecipientSelect(recipient.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleRecipientSelect(recipient.id);
+                      }
+                    }}
+                    aria-label={`Select ${recipient.name}`}
+                    aria-pressed={selectedRecipient === recipient.id}
                     sx={{
                       display: "flex",
                       alignItems: "center",

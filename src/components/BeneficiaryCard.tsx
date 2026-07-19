@@ -13,9 +13,11 @@ interface BeneficiaryCardProps {
   account: string;
   gradient: string;
   onMenuOpen?: (e: React.MouseEvent<HTMLElement>) => void;
+  onSendMoney?: () => void;
+  onRequestMoney?: () => void;
 }
 
-export default function BeneficiaryCard({ name, initials, email, phone, bank, account, gradient, onMenuOpen }: BeneficiaryCardProps) {
+export default function BeneficiaryCard({ name, initials, email, phone, bank, account, gradient, onMenuOpen, onSendMoney, onRequestMoney }: BeneficiaryCardProps) {
   return (
     <Card
       variant="outlined"
@@ -43,6 +45,7 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
             size="small"
             sx={{ width: 36, height: 36 }}
             onClick={onMenuOpen}
+            aria-label="More options"
           >
             <MoreVertIcon sx={{ fontSize: 20, color: "grey.700" }} />
           </IconButton>
@@ -74,7 +77,7 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
             </Typography>
           </Box>
           <Typography sx={{ fontSize: 14, color: "text.secondary", lineHeight: "20px", letterSpacing: "-0.1504px" }}>
-            <Box component="span" sx={{ fontWeight: 500 }}>Account:</Box> {account}
+            <Box component="span" sx={{ fontWeight: 500 }}>Account:</Box> {account.length > 4 ? `••••••${account.slice(-4)}` : account}
           </Typography>
         </Box>
 
@@ -83,6 +86,7 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
           <Button
             variant="contained"
             fullWidth
+            onClick={onSendMoney}
             sx={{
               textTransform: "none",
               height: 32,
@@ -97,6 +101,7 @@ export default function BeneficiaryCard({ name, initials, email, phone, bank, ac
           <Button
             variant="outlined"
             fullWidth
+            onClick={onRequestMoney}
             sx={{
               color: "text.primary",
               borderColor: "divider",

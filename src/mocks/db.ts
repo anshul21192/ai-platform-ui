@@ -47,12 +47,12 @@ export const db = {
   ] satisfies TransactionRecord[],
 
   beneficiaries: [
-    { id: 1, name: "John Smith", initials: "JS", email: "john@example.com", phone: "+1 (555) 123-4567", bank: "JPMorgan Chase", account: "****1234", gradient: gradients[0] },
-    { id: 2, name: "Sarah Johnson", initials: "SJ", email: "sarah@example.com", phone: "+1 (555) 234-5678", bank: "Bank of America", account: "****5678", gradient: gradients[1] },
-    { id: 3, name: "Michael Brown", initials: "MB", email: "michael@example.com", phone: "+1 (555) 345-6789", bank: "Wells Fargo", account: "****9012", gradient: gradients[2] },
-    { id: 4, name: "Emily Davis", initials: "ED", email: "emily@example.com", phone: "+1 (555) 456-7890", bank: "Citibank", account: "****3456", gradient: gradients[3] },
-    { id: 5, name: "David Wilson", initials: "DW", email: "david@example.com", phone: "+1 (555) 567-8901", bank: "Bank of America", account: "****7890", gradient: gradients[4] },
-    { id: 6, name: "Jessica Miller", initials: "JM", email: "jessica@example.com", phone: "+1 (555) 678-9012", bank: "Deutsche Bank", account: "****2345", gradient: gradients[5] },
+    { id: 1, name: "John Smith", initials: "JS", email: "john@example.com", phone: "+1 (555) 123-4567", bank: "JPMorgan Chase", account: "4523198760", gradient: gradients[0] },
+    { id: 2, name: "Sarah Johnson", initials: "SJ", email: "sarah@example.com", phone: "+1 (555) 234-5678", bank: "Bank of America", account: "7834019256", gradient: gradients[1] },
+    { id: 3, name: "Michael Brown", initials: "MB", email: "michael@example.com", phone: "+1 (555) 345-6789", bank: "Wells Fargo", account: "1092837465", gradient: gradients[2] },
+    { id: 4, name: "Emily Davis", initials: "ED", email: "emily@example.com", phone: "+1 (555) 456-7890", bank: "Citibank", account: "3674829105", gradient: gradients[3] },
+    { id: 5, name: "David Wilson", initials: "DW", email: "david@example.com", phone: "+1 (555) 567-8901", bank: "Bank of America", account: "6248103974", gradient: gradients[4] },
+    { id: 6, name: "Jessica Miller", initials: "JM", email: "jessica@example.com", phone: "+1 (555) 678-9012", bank: "Deutsche Bank", account: "9150274683", gradient: gradients[5] },
   ] satisfies BeneficiaryRecord[],
 
   getNextBeneficiaryGradient() {
