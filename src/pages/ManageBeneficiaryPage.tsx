@@ -21,7 +21,7 @@ const banks = [
 
 export default function ManageBeneficiaryPage() {
   const navigate = useNavigate();
-  const { editingBeneficiary, clearEditing } = useBeneficiary();
+  const { editingBeneficiary } = useBeneficiary();
   const isEdit = editingBeneficiary !== null;
 
   const [name, setName] = useState("");
@@ -38,8 +38,7 @@ export default function ManageBeneficiaryPage() {
       setBank(editingBeneficiary.bank);
       setAccount(editingBeneficiary.account);
     }
-    return () => clearEditing();
-  }, [editingBeneficiary, clearEditing]);
+  }, [editingBeneficiary]);
 
   const handleSave = () => {
     const event = new CustomEvent("beneficiary-saved", {

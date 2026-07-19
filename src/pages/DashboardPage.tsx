@@ -3,7 +3,7 @@ import Grid from "@mui/material/Grid";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import GroupIcon from "@mui/icons-material/Group";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import WifiIcon from "@mui/icons-material/Wifi";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import StatCard from "../components/StatCard";
@@ -34,9 +34,9 @@ const statCards = [
     iconBgKey: "primary.main" as const,
   },
   {
-    title: "Active Sessions",
-    value: "2",
-    icon: <WifiIcon />,
+    title: "Pending Transactions",
+    value: "1",
+    icon: <CurrencyExchangeIcon />,
     iconBgKey: "warning.main" as const,
   },
 ];

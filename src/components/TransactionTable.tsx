@@ -1,4 +1,4 @@
-import { Box, Typography, Avatar, Table, TableHead, TableBody, TableRow, TableCell, useTheme } from "@mui/material";
+import { Box, Typography, Avatar, Table, TableHead, TableBody, TableRow, TableCell, useTheme, type Theme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 
@@ -8,52 +8,153 @@ export interface Transaction {
   status: string;
   amount: string;
   positive: boolean;
+  category?: string;
   iconBgKey?: string;
   iconBg?: string;
 }
 
-interface TransactionTableProps {
-  title: string;
-  transactions: Transaction[];
+export interface Column {
+  key: string;
+  label: string;
+  align?: "left" | "right" | "center";
+  render?: (row: Transaction) => React.ReactNode;
+  headerSx?: Record<string, unknown>;
+  cellSx?: Record<string, unknown>;
 }
 
-export default function TransactionTable({ title, transactions }: TransactionTableProps) {
-  const theme = useTheme();
+interface TransactionTableProps {
+  title?: string;
+  transactions: Transaction[];
+  columns?: Column[];
+}
 
-  const resolveColor = (key: string): string => {
-    const parts = key.split(".");
-    if (parts.length === 2) {
-      const [group, shade] = parts;
-      const paletteGroup = (theme.palette as unknown as Record<string, unknown>)[group];
-      if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as Record<string, string>)) {
-        return (paletteGroup as Record<string, string>)[shade];
-      }
+const defaultColumns: Column[] = [
+  { key: "transaction", label: "Transaction" },
+  { key: "date", label: "Date" },
+  { key: "status", label: "Status" },
+  { key: "amount", label: "Amount", align: "right" },
+];
+
+function resolveColor(key: string, theme: Theme): string {
+  const parts = key.split(".");
+  if (parts.length === 2) {
+    const [group, shade] = parts;
+    const paletteGroup = (theme.palette as unknown as Record<string, unknown>)[group];
+    if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as Record<string, string>)) {
+      return (paletteGroup as Record<string, string>)[shade];
     }
-    return key;
-  };
+  }
+  return key;
+}
+
+function defaultRenderCell(tx: Transaction, colKey: string, theme: Theme) {
+  switch (colKey) {
+    case "transaction":
+      return (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              bgcolor: tx.iconBg ?? (tx.iconBgKey ? resolveColor(tx.iconBgKey, theme) : tx.positive ? "#dcfce7" : "#ffe2e2"),
+              color: "inherit",
+              "& svg": { fontSize: 20 },
+            }}
+          >
+            {tx.positive ? <AddIcon sx={{ color: "#016630" }} /> : <RemoveIcon sx={{ color: "#dc2626" }} />}
+          </Avatar>
+          <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary" }}>
+            {tx.name}
+          </Typography>
+        </Box>
+      );
+    case "category":
+      return (
+        <Box
+          sx={{
+            display: "inline-block",
+            px: 1.25,
+            py: 0.375,
+            borderRadius: "50px",
+            bgcolor: theme.palette.grey[100],
+            fontSize: 12,
+            fontWeight: 500,
+            color: "#1e2939",
+          }}
+        >
+          {tx.category}
+        </Box>
+      );
+    case "date":
+      return (
+        <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
+          {tx.date}
+        </Typography>
+      );
+    case "status":
+      return (
+        <Box
+          sx={{
+            display: "inline-block",
+            px: 1.25,
+            py: 0.375,
+            borderRadius: "50px",
+            bgcolor: tx.status === "completed" ? "success.light" : "warning.light",
+            color: tx.status === "completed" ? "success.dark" : "warning.dark",
+            fontSize: 12,
+            fontWeight: 500,
+          }}
+        >
+          {tx.status}
+        </Box>
+      );
+    case "amount":
+      return (
+        <Typography
+          sx={{
+            fontSize: 14,
+            fontWeight: 500,
+            color: tx.positive ? "success.dark" : "error.main",
+          }}
+        >
+          {tx.amount}
+        </Typography>
+      );
+    default:
+      return null;
+  }
+}
+
+export default function TransactionTable({ title, transactions, columns }: TransactionTableProps) {
+  const theme = useTheme();
+  const cols = columns ?? defaultColumns;
 
   return (
     <Box sx={{ bgcolor: "background.paper", border: `1px solid ${theme.palette.divider}`, borderRadius: "14px", p: 3 }}>
-      <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
-        {title}
-      </Typography>
+      {title && (
+        <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", lineHeight: "28px", mb: 3 }}>
+          {title}
+        </Typography>
+      )}
       <Table sx={{ width: "100%" }}>
         <TableHead>
           <TableRow sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
-            {["Transaction", "Date", "Status", "Amount"].map((h) => (
+            {cols.map((col) => (
               <TableCell
-                key={h}
+                key={col.key}
                 sx={{
-                  textAlign: h === "Amount" ? "right" : "left",
+                  textAlign: col.align ?? "left",
                   py: 1.5,
                   px: 2,
                   fontSize: 14,
                   fontWeight: 500,
                   color: "grey.700",
                   border: "none",
+                  ...col.headerSx,
                 }}
               >
-                {h}
+                {col.label}
               </TableCell>
             ))}
           </TableRow>
@@ -61,57 +162,20 @@ export default function TransactionTable({ title, transactions }: TransactionTab
         <TableBody>
           {transactions.map((tx, i) => (
             <TableRow key={i} sx={{ borderBottom: `1px solid ${theme.palette.grey[100]}` }}>
-              <TableCell sx={{ py: 2, px: 2, border: "none" }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <Avatar
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      bgcolor: tx.iconBg ?? (tx.iconBgKey ? resolveColor(tx.iconBgKey) : theme.palette.grey[100]),
-                      color: tx.positive ? "success.dark" : "error.main",
-                      "& svg": { fontSize: 20 },
-                    }}
-                  >
-                    {tx.positive ? <AddIcon /> : <RemoveIcon />}
-                  </Avatar>
-                  <Typography sx={{ fontSize: 14, color: "text.primary" }}>
-                    {tx.name}
-                  </Typography>
-                </Box>
-              </TableCell>
-              <TableCell sx={{ py: 2, px: 2, fontSize: 14, color: "text.secondary", border: "none" }}>
-                {tx.date}
-              </TableCell>
-              <TableCell sx={{ py: 2, px: 2, border: "none" }}>
-                <Box
+              {cols.map((col) => (
+                <TableCell
+                  key={col.key}
                   sx={{
-                    display: "inline-block",
-                    px: 1.25,
-                    py: 0.375,
-                    borderRadius: "50px",
-                    bgcolor: tx.status === "completed" ? "success.light" : "warning.light",
-                    color: tx.status === "completed" ? "success.dark" : "warning.dark",
-                    fontSize: 12,
-                    fontWeight: 500,
+                    py: 2,
+                    px: 2,
+                    textAlign: col.align ?? "left",
+                    border: "none",
+                    ...col.cellSx,
                   }}
                 >
-                  {tx.status}
-                </Box>
-              </TableCell>
-              <TableCell
-                sx={{
-                  py: 2,
-                  px: 2,
-                  textAlign: "right",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: tx.positive ? "success.dark" : "error.main",
-                  border: "none",
-                }}
-              >
-                {tx.amount}
-              </TableCell>
+                  {col.render ? col.render(tx) : defaultRenderCell(tx, col.key, theme)}
+                </TableCell>
+              ))}
             </TableRow>
           ))}
         </TableBody>

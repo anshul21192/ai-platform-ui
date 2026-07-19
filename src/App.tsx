@@ -7,6 +7,8 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import BeneficiariesPage from "./pages/BeneficiariesPage";
 import ManageBeneficiaryPage from "./pages/ManageBeneficiaryPage";
+import SettingsPage from "./pages/SettingsPage";
+import TransactionsPage from "./pages/TransactionsPage";
 import PageLayout from "./components/PageLayout";
 import { BeneficiaryProvider } from "./contexts/BeneficiaryContext";
 
@@ -31,6 +33,8 @@ export default function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/beneficiaries" element={<BeneficiariesPage />} />
               <Route path="/manageBeneficiary" element={<ManageBeneficiaryPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BeneficiaryProvider>
