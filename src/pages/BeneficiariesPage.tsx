@@ -10,6 +10,11 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
@@ -25,6 +30,7 @@ export default function BeneficiariesPage() {
   const [search, setSearch] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuTarget, setMenuTarget] = useState<Beneficiary | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { beneficiaries, removeBeneficiary, navigateToAdd, navigateToEdit } = useBeneficiary();
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, beneficiary: Beneficiary) => {
@@ -46,11 +52,17 @@ export default function BeneficiariesPage() {
   };
 
   const handleDelete = () => {
+    setDeleteConfirmOpen(true);
+    handleMenuClose();
+  };
+
+  const confirmDelete = () => {
     if (menuTarget) {
       trackEvent("DELETE_BENEFICIARY", { beneficiaryId: menuTarget.id, beneficiaryName: menuTarget.name });
       removeBeneficiary(menuTarget.id);
     }
-    handleMenuClose();
+    setDeleteConfirmOpen(false);
+    setMenuTarget(null);
   };
 
   const handleSendMoney = (beneficiary: Beneficiary) => {
@@ -162,11 +174,23 @@ export default function BeneficiariesPage() {
         </Grid>
 
         {/* Beneficiary Cards */}
-        {filtered.map((b) => (
-          <Grid key={b.id} size={{ md: 6, lg: 4 }}>
-            <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} onSendMoney={() => handleSendMoney(b)} onRequestMoney={() => handleRequestMoney(b)} />
+        {filtered.length === 0 ? (
+          <Grid size={12}>
+            <Box sx={{ textAlign: "center", py: 8 }}>
+                            <Typography
+                component="h1"
+                sx={{ color: "text.secondary", fontSize: 14 }}>
+                {search ? "No beneficiaries match your search." : "No beneficiaries yet. Add one to get started."}
+              </Typography>
+            </Box>
           </Grid>
-        ))}
+        ) : (
+          filtered.map((b) => (
+            <Grid key={b.id} size={{ md: 6, lg: 4 }}>
+              <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} onSendMoney={() => handleSendMoney(b)} onRequestMoney={() => handleRequestMoney(b)} />
+            </Grid>
+          ))
+        )}
 
         {/* Context Menu */}
         <Menu
@@ -203,6 +227,20 @@ export default function BeneficiariesPage() {
             />
           </MenuItem>
         </Menu>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+          <DialogTitle>Delete Beneficiary</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete {menuTarget?.name}? This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={confirmDelete} color="error" variant="contained">Delete</Button>
+          </DialogActions>
+        </Dialog>
       </Grid>
     </Box>
   );

@@ -36,11 +36,11 @@ const ROUTE_ACTION_MAP: Record<string, string> = {
 };
 
 const SENSITIVE_ROUTES: Record<string, string[]> = {
-  "/payments/send-money": ["/beneficiaries", "/dashboard", "/"],
-  "/payments/request-money": ["/beneficiaries", "/dashboard", "/"],
-  "/manage-beneficiary": ["/beneficiaries"],
-  "/settings": ["/dashboard", "/"],
-  "/transactions": ["/dashboard", "/"],
+  "/payments/send-money": ["/beneficiaries", "/dashboard", "/audit-logs", "/"],
+  "/payments/request-money": ["/beneficiaries", "/dashboard", "/audit-logs", "/"],
+  "/manage-beneficiary": ["/beneficiaries", "/audit-logs"],
+  "/settings": ["/dashboard", "/audit-logs", "/"],
+  "/transactions": ["/dashboard", "/audit-logs", "/"],
 };
 
 const NAV_HISTORY_MAX = 15;

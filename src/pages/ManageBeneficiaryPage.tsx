@@ -71,7 +71,7 @@ export default function ManageBeneficiaryPage() {
               Back
             </Button>
           </Box>
-          <Typography sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
+          <Typography component="h1" sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
             {isEdit ? "Update Beneficiary" : "Add Beneficiary"}
           </Typography>
           <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>

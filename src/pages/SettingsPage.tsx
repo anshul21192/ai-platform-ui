@@ -1,5 +1,5 @@
-import { useReducer } from "react";
-import { Box, Typography, TextField, Button, Card, CardContent, Switch, useTheme } from "@mui/material";
+import { useReducer, useState } from "react";
+import { Box, Typography, TextField, Button, Card, CardContent, Switch, Alert, useTheme } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
@@ -147,8 +147,21 @@ function ToggleRow({ title, description, checked, onChange }: ToggleRowProps) {
 export default function SettingsPage() {
   const theme = useTheme();
   const [state, dispatch] = useReducer(settingsReducer, initialState);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const set = (field: keyof SettingsState) => (value: string | boolean) =>
     dispatch({ type: "SET_FIELD", field, value });
+
+  const handleSaveProfile = () => {
+    trackEvent("UPDATE_PROFILE", { email: state.email, phone: state.phone, firstName: state.firstName, lastName: state.lastName });
+    setSaveMessage("Profile saved successfully.");
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
+
+  const handleUpdatePassword = () => {
+    trackEvent("CHANGE_PASSWORD", { hasNewPassword: Boolean(state.newPassword) });
+    setSaveMessage("Password updated successfully.");
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
@@ -159,12 +172,13 @@ export default function SettingsPage() {
     <Box sx={{ p: 4 }}>
       <Grid container spacing={3}>
         <Grid size={12}>
-          <Typography sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
+          <Typography component="h1" sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
             Settings
           </Typography>
           <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>
             Manage your account settings and preferences
           </Typography>
+          {saveMessage && <Alert severity="success" sx={{ mt: 2 }}>{saveMessage}</Alert>}
         </Grid>
 
         {/* Profile Settings */}
@@ -185,7 +199,7 @@ export default function SettingsPage() {
                 <FieldRow label="Phone Number" value={state.phone} onChange={set("phone")} />
                 <Button
                   variant="contained"
-                  onClick={() => trackEvent("UPDATE_PROFILE", { email: state.email, phone: state.phone, firstName: state.firstName, lastName: state.lastName })}
+                  onClick={handleSaveProfile}
                     sx={{
                       height: 36,
                       fontSize: 14,
@@ -228,7 +242,7 @@ export default function SettingsPage() {
                 <ToggleRow title="Two-Factor Authentication" description="Add an extra layer of security" checked={state.twoFactor} onChange={set("twoFactor")} />
                 <Button
                   variant="contained"
-                  onClick={() => trackEvent("CHANGE_PASSWORD", { hasNewPassword: Boolean(state.newPassword) })}
+                  onClick={handleUpdatePassword}
                     sx={{
                       height: 36,
                       fontSize: 14,

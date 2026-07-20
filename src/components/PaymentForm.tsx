@@ -84,8 +84,13 @@ export default function PaymentForm({ config }: PaymentFormProps) {
     setCurrency(event.target.value);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber });
+  };
+
   return (
-    <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 4, p: 4 }} onSubmit={(e) => e.preventDefault()}>
+    <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 4, p: 4 }} onSubmit={handleSubmit}>
       {/* Header */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Typography
@@ -278,6 +283,7 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    inputProps={{ inputMode: "decimal", pattern: "[0-9]*\\.?[0-9]+" }}
                     sx={{
                       ...inputSx,
                       "& .MuiOutlinedInput-root": {
@@ -340,7 +346,6 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                 variant="contained"
                 fullWidth
                 startIcon={config.actionIcon}
-                onClick={() => trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber })}
                 sx={{
                   color: "common.white",
                   height: 36,

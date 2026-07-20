@@ -21,7 +21,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return <Navigate to="/login" replace />;
   }
 
   return <PageLayout>{children}</PageLayout>;
@@ -44,21 +44,26 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <NavigationTracker />
-          <ProtectedRoute>
-            <BeneficiaryProvider>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/beneficiaries" element={<BeneficiariesPage />} />
-                <Route path="/manage-beneficiary" element={<ManageBeneficiaryPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
-                <Route path="/payments/send-money" element={<SendMoneyPage />} />
-                <Route path="/payments/request-money" element={<RequestMoneyPage />} />
-                <Route path="/audit-logs" element={<AuditLogsPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </BeneficiaryProvider>
-          </ProtectedRoute>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={
+              <ProtectedRoute>
+                <BeneficiaryProvider>
+                  <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/beneficiaries" element={<BeneficiariesPage />} />
+                    <Route path="/manage-beneficiary" element={<ManageBeneficiaryPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/transactions" element={<TransactionsPage />} />
+                    <Route path="/payments/send-money" element={<SendMoneyPage />} />
+                    <Route path="/payments/request-money" element={<RequestMoneyPage />} />
+                    <Route path="/audit-logs" element={<AuditLogsPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </BeneficiaryProvider>
+              </ProtectedRoute>
+            } />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

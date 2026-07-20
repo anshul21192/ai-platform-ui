@@ -10,7 +10,6 @@ import {
   IconButton,
   InputAdornment,
   Avatar,
-  Link,
   Switch,
   Divider,
   Alert,
@@ -34,7 +33,8 @@ export default function LoginPage() {
   const [newDevice, setNewDevice] = useState(false);
   const [newLocation, setNewLocation] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     clearLoginError();
     const success = login(username, password, newDevice, newLocation);
     if (success) navigate("/");
@@ -62,7 +62,7 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <SavingsIcon />
+          <SavingsIcon aria-hidden="true" />
           <Typography
             sx={{
               fontSize: 18,
@@ -80,19 +80,18 @@ export default function LoginPage() {
           <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
             Don't have an account?
           </Typography>
-          <Link
-            href="#"
+          <Typography
+            component="span"
             sx={{
               color: "text.primary",
               fontSize: 14,
               fontWeight: 500,
               textDecoration: "none",
               lineHeight: "20px",
-              "&:hover": { textDecoration: "underline" },
             }}
           >
             Register
-          </Link>
+          </Typography>
         </Box>
       </Box>
       {/* Login Card */}
@@ -118,6 +117,7 @@ export default function LoginPage() {
           {/* Logo */}
           <Box sx={{ display: "flex", justifyContent: "center", mb: 4, position: "relative" }}>
             <Avatar
+              aria-hidden="true"
               sx={{
                 width: 80,
                 height: 80,
@@ -128,6 +128,7 @@ export default function LoginPage() {
               <PersonIcon />
             </Avatar>
             <Avatar
+              aria-hidden="true"
               sx={{
                 width: 24,
                 height: 24,
@@ -154,7 +155,7 @@ export default function LoginPage() {
           </Box>
 
           {/* Form */}
-          <Box component="form" noValidate autoComplete="off">
+          <Box component="form" noValidate autoComplete="off" onSubmit={handleSubmit}>
             {/* Email */}
             <TextField
               fullWidth
@@ -244,18 +245,17 @@ export default function LoginPage() {
                   </Typography>
                 }
               />
-              <Link
-                href="#"
+              <Typography
+                component="span"
                 sx={{
                   color: "text.primary",
                   fontSize: 14,
                   textDecoration: "none",
                   fontWeight: 400,
-                  "&:hover": { textDecoration: "underline" },
                 }}
               >
                 Forgot Password?
-              </Link>
+              </Typography>
             </Box>
 
             {/* New Device Toggle */}
@@ -273,6 +273,7 @@ export default function LoginPage() {
                 onChange={(e) => setNewDevice(e.target.checked)}
                 color="warning"
                 size="small"
+                inputProps={{ "aria-label": "Simulate new device" }}
               />
             </Box>
 
@@ -291,6 +292,7 @@ export default function LoginPage() {
                 onChange={(e) => setNewLocation(e.target.checked)}
                 color="warning"
                 size="small"
+                inputProps={{ "aria-label": "Simulate new location" }}
               />
             </Box>
 
@@ -305,8 +307,8 @@ export default function LoginPage() {
             {/* Sign In Button */}
             <Button
               fullWidth
+              type="submit"
               variant="contained"
-              onClick={handleSubmit}
               sx={{
                 height: 48,
                 // bgcolor: "grey.800",
@@ -335,7 +337,7 @@ export default function LoginPage() {
         }}
       >
         <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 14 }}>
-          ©2024 Financial Dashboard
+          ©2026 Financial Dashboard
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
           <LanguageIcon sx={{ fontSize: 14 }} />
