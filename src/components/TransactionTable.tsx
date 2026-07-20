@@ -40,8 +40,8 @@ function resolveColor(key: string, theme: Theme): string {
   if (parts.length === 2) {
     const [group, shade] = parts;
     const paletteGroup = theme.palette[group as keyof typeof theme.palette];
-    if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as Record<string, string>)) {
-      return (paletteGroup as Record<string, string>)[shade];
+    if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as unknown as Record<string, string>)) {
+      return (paletteGroup as unknown as Record<string, string>)[shade];
     }
   }
   return key;

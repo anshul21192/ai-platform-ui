@@ -15,6 +15,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import SavingsIcon from '@mui/icons-material/Savings';
 import MenuIcon from "@mui/icons-material/Menu";
+import HistoryIcon from "@mui/icons-material/History";
 
 const DRAWER_WIDTH = 256;
 
@@ -37,6 +38,7 @@ const navItems = [
   { label: "Beneficiaries", icon: <PeopleIcon />, path: "/beneficiaries" },
   { label: "Quick Actions", icon: <BoltIcon />, expandable: true, path: "/quick-actions", disabled: true },
   { label: "Settings", icon: <SettingsIcon />, path: "/settings" },
+  { label: "Event Logs", icon: <HistoryIcon />, path: "/audit-logs" },
 ];
 
 interface SidebarProps {

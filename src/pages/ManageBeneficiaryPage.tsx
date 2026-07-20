@@ -129,7 +129,7 @@ export default function ManageBeneficiaryPage() {
                 placeholder="Enter 10-digit account number"
                 value={account}
                 onChange={(e) => setAccount(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                slotProps={{ inputLabel: { shrink: true }, input: { maxLength: 10 } }}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { maxLength: 10 } }}
               />
 
               <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
