@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -11,6 +11,8 @@ import {
   Avatar,
   Link,
 } from "@mui/material";
+import { useKeystrokeDynamics } from "../hooks/useKeystrokeDynamics";
+import { sendKeystrokeMetrics } from "../api/keystrokeAnalysis";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonIcon from '@mui/icons-material/Person';
@@ -22,6 +24,29 @@ import LanguageIcon from "@mui/icons-material/Language";
 
 export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
+  const { metrics, handleKeyDown, handleKeyUp, resetMetrics } = useKeystrokeDynamics();
+ // Add the handleLogin function here
+ const handleLogin = async () => {
+  try {
+    console.log("Keystroke Metrics:", metrics);
+
+    const response = await sendKeystrokeMetrics({
+      sessionType: "LOGIN",
+      metrics,
+    });
+
+    console.log("Fraud Response:", response);
+
+    resetMetrics();
+
+    onLogin();
+  } catch (error) {
+    console.error("Failed to send keystroke metrics:", error);
+
+    // Continue login for demo purposes
+    onLogin();
+  }
+};
 
   return (
     <Box
@@ -78,6 +103,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
           </Link>
         </Box>
       </Box>
+
       {/* Login Card */}
       <Box
         sx={{
@@ -128,7 +154,16 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
 
           {/* Title */}
           <Box sx={{ textAlign: "center", mb: 4 }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, fontSize: 24, lineHeight: "32px", color: "text.primary", mb: 1 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                fontSize: 24,
+                lineHeight: "32px",
+                color: "text.primary",
+                mb: 1,
+              }}
+            >
               Login to your account
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 14, lineHeight: "20px" }}>
@@ -143,6 +178,8 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               fullWidth
               label="Username"
               placeholder="Ex: z@financial.com"
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -170,6 +207,8 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               label="Password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -241,7 +280,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             <Button
               fullWidth
               variant="contained"
-              onClick={onLogin}
+              onClick={handleLogin}
               sx={{
                 height: 48,
                 // bgcolor: "grey.800",
