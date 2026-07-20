@@ -13,6 +13,7 @@ const config: PaymentFormConfig = {
   feeLabel: "Service Fee",
   infoBoxTitle: "Instant Request:",
   infoBoxDescription: "Your request will be sent immediately.",
+  submitAction: "REQUEST_MONEY",
 };
 
 export default function RequestMoneyPage() {

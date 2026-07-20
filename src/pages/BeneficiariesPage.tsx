@@ -18,6 +18,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BeneficiaryCard from "../components/BeneficiaryCard";
 import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
+import { trackEvent } from "../utils/eventLogger";
 
 export default function BeneficiariesPage() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ export default function BeneficiariesPage() {
 
   const handleEdit = () => {
     if (menuTarget) {
+      trackEvent("EDIT_BENEFICIARY", { beneficiaryId: menuTarget.id, beneficiaryName: menuTarget.name });
       navigateToEdit(menuTarget);
     }
     handleMenuClose();
@@ -45,16 +47,19 @@ export default function BeneficiariesPage() {
 
   const handleDelete = () => {
     if (menuTarget) {
+      trackEvent("DELETE_BENEFICIARY", { beneficiaryId: menuTarget.id, beneficiaryName: menuTarget.name });
       removeBeneficiary(menuTarget.id);
     }
     handleMenuClose();
   };
 
   const handleSendMoney = (beneficiary: Beneficiary) => {
+    trackEvent("TRANSFER", { beneficiaryId: beneficiary.id, beneficiaryName: beneficiary.name });
     navigate("/payments/send-money", { state: { beneficiary } });
   };
 
   const handleRequestMoney = (beneficiary: Beneficiary) => {
+    trackEvent("REQUEST_MONEY", { beneficiaryId: beneficiary.id, beneficiaryName: beneficiary.name });
     navigate("/payments/request-money", { state: { beneficiary } });
   };
 
@@ -103,7 +108,7 @@ export default function BeneficiariesPage() {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={navigateToAdd}
+              onClick={() => { trackEvent("ADD_PAYEE"); navigateToAdd(); }}
               sx={{
                 textTransform: "none",
                 px: 2,

@@ -6,6 +6,7 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
+import { trackEvent } from "../utils/eventLogger";
 
 const languages = ["English", "Spanish", "French", "German", "Hindi"];
 const currencies = ["USD - US Dollar", "EUR - Euro", "GBP - British Pound", "INR - Indian Rupee", "JPY - Japanese Yen"];
@@ -42,7 +43,7 @@ const initialState: SettingsState = {
   confirmPassword: "",
   emailNotifications: true,
   pushNotifications: true,
-  transactionAlerts: false,
+  transactionAlerts: true,
   weeklySummary: true,
   twoFactor: false,
   language: "English",
@@ -184,6 +185,7 @@ export default function SettingsPage() {
                 <FieldRow label="Phone Number" value={state.phone} onChange={set("phone")} />
                 <Button
                   variant="contained"
+                  onClick={() => trackEvent("UPDATE_PROFILE", { email: state.email, phone: state.phone, firstName: state.firstName, lastName: state.lastName })}
                     sx={{
                       height: 36,
                       fontSize: 14,
@@ -207,7 +209,7 @@ export default function SettingsPage() {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <ToggleRow title="Email Notifications" description="Receive email updates about your account" checked={state.emailNotifications} onChange={set("emailNotifications")} />
                 <ToggleRow title="Push Notifications" description="Receive push notifications on your device" checked={state.pushNotifications} onChange={set("pushNotifications")} />
-                <ToggleRow title="Transaction Alerts" description="Get notified about every transaction" checked={state.transactionAlerts} onChange={set("transactionAlerts")} />
+                <ToggleRow title="Transaction Alerts" description="Get notified about every transaction" checked={state.transactionAlerts} onChange={(val) => { set("transactionAlerts")(val); trackEvent("TOGGLE_TRANSACTION_ALERTS", { enabled: val }); }} />
                 <ToggleRow title="Weekly Summary" description="Receive a weekly summary of your activity" checked={state.weeklySummary} onChange={set("weeklySummary")} />
               </Box>
             </CardContent>
@@ -226,6 +228,7 @@ export default function SettingsPage() {
                 <ToggleRow title="Two-Factor Authentication" description="Add an extra layer of security" checked={state.twoFactor} onChange={set("twoFactor")} />
                 <Button
                   variant="contained"
+                  onClick={() => trackEvent("CHANGE_PASSWORD", { hasNewPassword: Boolean(state.newPassword) })}
                     sx={{
                       height: 36,
                       fontSize: 14,

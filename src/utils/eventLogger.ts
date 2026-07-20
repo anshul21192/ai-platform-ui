@@ -1,125 +1,133 @@
 export interface AppEvent {
-  id: string;
-  timestamp: string;
-  actionId: string;
-  category: string;
-  type: 'click' | 'navigation';
-  ip: string;
-  clicksInLastSecond: number;
-  details?: Record<string, any>;
+  userId: string;
+  sessionId: string;
+  seq: number;
+  action: string;
+  ts: number;
+  dwellFromPrevMs: number;
+  metadata: Record<string, any>;
 }
 
 const STORAGE_KEY = "vault_bank_events";
 const MAX_EVENTS = 200;
+const SENSITIVE_ACTIONS = new Set([
+  "DELETE_BENEFICIARY",
+  "EDIT_BENEFICIARIES",
+  "ADD_PAYEE",
+  "BULK_DOWNLOAD",
+  "TRANSFER",
+  "REQUEST_MONEY",
+  "CHANGE_EMAIL",
+  "CHANGE_MOBILE",
+  "CHANGE_PASSWORD",
+  "TOGGLE_TRANSACTION_ALERTS",
+  "LOGIN_LOCKOUT",
+]);
 
-let cachedIp = "127.0.0.1";
-let ipFetched = false;
-let clickTimestamps: number[] = [];
-let lastNavTime = Date.now();
-let lastPath = window.location.pathname;
+const ROUTE_ACTION_MAP: Record<string, string> = {
+  "/": "VIEW_DASHBOARD",
+  "/transactions": "VIEW_TRANSACTIONS",
+  "/beneficiaries": "VIEW_BENEFICIARIES",
+  "/manage-beneficiary": "VIEW_MANAGE_BENEFICIARY",
+  "/settings": "VIEW_SETTINGS",
+  "/audit-logs": "VIEW_AUDIT_LOGS",
+  "/payments/send-money": "VIEW_SEND_MONEY",
+  "/payments/request-money": "VIEW_REQUEST_MONEY",
+};
 
-// Initialize IP lookup and global click listener
-export async function initEventLogger(): Promise<void> {
-  if (ipFetched) return;
-  
-  // 1. Fetch IP
-  try {
-    const response = await fetch("https://api.ipify.org?format=json");
-    if (response.ok) {
-      const data = await response.json();
-      cachedIp = data.ip || "127.0.0.1";
-      ipFetched = true;
-    }
-  } catch (error) {
-    console.warn("Failed to fetch public IP, using default fallback:", error);
-    cachedIp = "127.0.0.1";
-  }
+const SENSITIVE_ROUTES: Record<string, string[]> = {
+  "/payments/send-money": ["/beneficiaries", "/dashboard", "/"],
+  "/payments/request-money": ["/beneficiaries", "/dashboard", "/"],
+  "/manage-beneficiary": ["/beneficiaries"],
+  "/settings": ["/dashboard", "/"],
+  "/transactions": ["/dashboard", "/"],
+};
 
-  // 2. Global click listener to capture every button, link, or role="button" click automatically
-  window.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    const clickable = target.closest("button, a, [role='button'], input[type='submit'], input[type='button']");
-    if (clickable) {
-      const id = clickable.id;
-      const text = clickable.textContent?.trim().slice(0, 30) || (clickable as HTMLInputElement).value || "";
-      const description = id ? `#${id} (${text})` : `"${text}"`;
-      const category = clickable.getAttribute("data-category") || "button-click";
-      
-      logEvent(`Clicked ${clickable.tagName.toLowerCase()}: ${description}`, category, "click");
-    }
-  });
+const NAV_HISTORY_MAX = 15;
+
+let currentUserId: string | null = null;
+let currentSessionId: string | null = null;
+let seq = 0;
+let previousEventTs = 0;
+let buffer: AppEvent[] = [];
+let onFlushCallback: ((events: AppEvent[]) => void) | null = null;
+let navHistory: string[] = [];
+
+export function setSession(userId: string, sessionId: string): void {
+  clearBuffer();
+  currentUserId = userId;
+  currentSessionId = sessionId;
+  seq = 0;
+  previousEventTs = Date.now();
+  navHistory = [];
 }
 
-// Track page navigation and calculate time spent on the previous page
-export function logNavigation(newPath: string) {
+export function clearSession(): void {
+  flush();
+  currentUserId = null;
+  currentSessionId = null;
+  seq = 0;
+  previousEventTs = 0;
+  navHistory = [];
+}
+
+export function setFlushCallback(fn: (events: AppEvent[]) => void): void {
+  onFlushCallback = fn;
+}
+
+export function trackEvent(
+  action: string,
+  metadata: Record<string, any> = {}
+): AppEvent | null {
   const now = Date.now();
-  const timeSpentSec = Math.round((now - lastNavTime) / 100) / 10; // decimal format (e.g., 2.3s)
+  const dwellFromPrevMs = now - previousEventTs;
 
-  // Log the time spent on the previous page
-  logEvent(
-    `Navigated to ${newPath}`,
-    "navigation",
-    "navigation",
-    {
-      previousPage: lastPath,
-      timeSpentOnPreviousPageSec: timeSpentSec,
-      timeSpentDesc: `Spent ${timeSpentSec}s on ${lastPath}`
-    }
-  );
-
-  lastNavTime = now;
-  lastPath = newPath;
-}
-
-export function getCachedIp(): string {
-  return cachedIp;
-}
-
-// Log a click or navigation event
-export function logEvent(
-  actionId: string,
-  category: string,
-  type: 'click' | 'navigation' = 'click',
-  details?: Record<string, any>
-): AppEvent {
-  const now = Date.now();
-
-  // If this is a click, update click timing history
-  if (type === 'click') {
-    clickTimestamps.push(now);
-  }
-
-  // Filter timestamps to only keep those within the last 1000ms
-  clickTimestamps = clickTimestamps.filter(t => now - t <= 1000);
-  const clicksInLastSecond = type === 'click' ? clickTimestamps.length : 0;
-
-  // Build the event
-  const newEvent: AppEvent = {
-    id: Math.random().toString(36).substring(2, 9) + '-' + now,
-    timestamp: new Date(now).toISOString(),
-    actionId,
-    category,
-    type,
-    ip: cachedIp,
-    clicksInLastSecond,
-    details
+  const event: AppEvent = {
+    userId: currentUserId ?? "anonymous",
+    sessionId: currentSessionId ?? "pre-session",
+    seq: ++seq,
+    action,
+    ts: now,
+    dwellFromPrevMs,
+    metadata,
   };
 
-  try {
-    const existingEvents = getEvents();
-    existingEvents.unshift(newEvent); // Add new event at the beginning (newest first)
+  buffer.push(event);
+  previousEventTs = now;
 
-    // Limit to max events
-    const trimmedEvents = existingEvents.slice(0, MAX_EVENTS);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedEvents));
-  } catch (err) {
-    console.error("Failed to save event to localStorage", err);
+  if (SENSITIVE_ACTIONS.has(action)) {
+    flush();
   }
 
-  return newEvent;
+  return event;
 }
 
-// Retrieve events
+export function flush(): void {
+  if (buffer.length === 0) return;
+
+  const eventsToFlush = [...buffer];
+  buffer = [];
+
+  try {
+    const existing = getEvents();
+    const merged = [...eventsToFlush, ...existing].slice(0, MAX_EVENTS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  } catch (err) {
+    console.error("Failed to persist events to localStorage", err);
+  }
+
+  if (currentSessionId || eventsToFlush.length > 0) {
+    const sessionId = currentSessionId ?? eventsToFlush[0]?.sessionId ?? "unknown";
+    fetch("/api/v1/fraud/telemetry/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, events: eventsToFlush }),
+    }).catch((err) => console.error("Failed to flush events to telemetry endpoint", err));
+  }
+
+  onFlushCallback?.(eventsToFlush);
+}
+
 export function getEvents(): AppEvent[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -131,12 +139,57 @@ export function getEvents(): AppEvent[] {
   }
 }
 
-// Clear events
+export function getBufferedEvents(): AppEvent[] {
+  return [...buffer];
+}
+
 export function clearEvents(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    clickTimestamps = [];
   } catch (err) {
     console.error("Failed to clear events from localStorage", err);
   }
+  clearBuffer();
+}
+
+export function logNavigation(newPath: string): void {
+  const action = ROUTE_ACTION_MAP[newPath] || `NAVIGATE_${newPath.replace(/\//g, "_").toUpperCase()}`;
+  trackEvent(action, { path: newPath });
+
+  const prevRoute = navHistory.length > 0 ? navHistory[navHistory.length - 1] : null;
+  navHistory.push(newPath);
+  if (navHistory.length > NAV_HISTORY_MAX) {
+    navHistory.shift();
+  }
+
+  const validPredecessors = SENSITIVE_ROUTES[newPath];
+  if (validPredecessors) {
+    const isDirectAccess = !prevRoute || !validPredecessors.includes(prevRoute);
+    if (isDirectAccess) {
+      trackEvent("DIRECT_ROUTE_ACCESS", {
+        targetRoute: newPath,
+        previousRoute: prevRoute,
+        navHistory: [...navHistory],
+        reason: prevRoute
+          ? `Navigated directly from ${prevRoute} without visiting a valid predecessor`
+          : "First route accessed after login with no navigation history",
+      });
+    }
+  }
+}
+
+export function getNavHistory(): string[] {
+  return [...navHistory];
+}
+
+export function getSessionId(): string | null {
+  return currentSessionId;
+}
+
+export function getUserId(): string | null {
+  return currentUserId;
+}
+
+function clearBuffer(): void {
+  buffer = [];
 }

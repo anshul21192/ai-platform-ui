@@ -22,6 +22,26 @@ import SearchIcon from "@mui/icons-material/Search";
 import TransactionTable from "../components/TransactionTable";
 import type { Transaction, Column } from "../components/TransactionTable";
 import { fetchDetailedTransactions } from "../api/transactions";
+import { trackEvent } from "../utils/eventLogger";
+
+function downloadCsv(transactions: Transaction[]) {
+  const headers = ["Name", "Category", "Date", "Status", "Amount"];
+  const rows = transactions.map((t) => [
+    t.name,
+    t.category ?? "",
+    t.date,
+    t.status,
+    t.amount,
+  ]);
+  const csv = [headers.join(","), ...rows.map((r) => r.map((v) => `"${v}"`).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "transactions.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
@@ -86,6 +106,7 @@ export default function TransactionsPage() {
             <Button
               variant="contained"
               startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                onClick={() => { trackEvent("BULK_DOWNLOAD", { recordCount: transactions.length }); downloadCsv(transactions); }}
                 sx={{
                   height: 36,
                   fontSize: 14,
@@ -95,7 +116,7 @@ export default function TransactionsPage() {
                   px: 2,
                 }}
             >
-              Export
+              Export All
             </Button>
           </Box>
         </Grid>

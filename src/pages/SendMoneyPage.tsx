@@ -13,6 +13,7 @@ const config: PaymentFormConfig = {
   feeLabel: "Transaction Fee",
   infoBoxTitle: "Instant Transfer:",
   infoBoxDescription: "Your payment will be processed immediately.",
+  submitAction: "TRANSFER",
 };
 
 export default function SendMoneyPage() {

@@ -16,6 +16,7 @@ import {
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
+import { trackEvent } from "../utils/eventLogger";
 
 const inputSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
@@ -47,6 +48,7 @@ export interface PaymentFormConfig {
   feeLabel: string;
   infoBoxTitle: string;
   infoBoxDescription: string;
+  submitAction: string;
 }
 
 interface PaymentFormProps {
@@ -338,6 +340,7 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                 variant="contained"
                 fullWidth
                 startIcon={config.actionIcon}
+                onClick={() => trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber })}
                 sx={{
                   color: "common.white",
                   height: 36,

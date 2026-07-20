@@ -83,4 +83,11 @@ export const handlers = [
     db.beneficiaries.splice(index, 1);
     return HttpResponse.json({ success: true });
   }),
+
+  // POST /api/v1/fraud/telemetry/events - receives event telemetry for fraud detection
+  http.post("/api/v1/fraud/telemetry/events", async ({ request }) => {
+    const body = (await request.json()) as { sessionId: string; events: unknown[] };
+    console.log(`[MSW] Received ${body.events.length} events for session ${body.sessionId}`);
+    return HttpResponse.json({ received: body.events.length, status: "ok" });
+  }),
 ];

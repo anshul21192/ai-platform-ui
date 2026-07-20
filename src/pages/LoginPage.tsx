@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -10,6 +11,9 @@ import {
   InputAdornment,
   Avatar,
   Link,
+  Switch,
+  Divider,
+  Alert,
 } from "@mui/material";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -19,9 +23,22 @@ import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
+import { useAuth } from "../contexts/AuthContext";
 
-export default function LoginPage({ onLogin }: { onLogin: () => void }) {
+export default function LoginPage() {
+  const { login, loginError, clearLoginError } = useAuth();
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [newDevice, setNewDevice] = useState(false);
+  const [newLocation, setNewLocation] = useState(false);
+
+  const handleSubmit = () => {
+    clearLoginError();
+    const success = login(username, password, newDevice, newLocation);
+    if (success) navigate("/");
+  };
 
   return (
     <Box
@@ -142,7 +159,9 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             <TextField
               fullWidth
               label="Username"
-              placeholder="Ex: z@financial.com"
+              placeholder="Ex: john@vault.bank"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -170,6 +189,8 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               label="Password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -237,11 +258,55 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               </Link>
             </Box>
 
+            {/* New Device Toggle */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1, p: 1.5, bgcolor: "grey.50", border: `1px solid`, borderColor: "divider" }}>
+              <Box>
+                <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary" }}>
+                  Simulate New Device
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                  Flag login as from an unrecognized device
+                </Typography>
+              </Box>
+              <Switch
+                checked={newDevice}
+                onChange={(e) => setNewDevice(e.target.checked)}
+                color="warning"
+                size="small"
+              />
+            </Box>
+
+            {/* New Location Toggle */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, p: 1.5, bgcolor: "grey.50", border: `1px solid`, borderColor: "divider" }}>
+              <Box>
+                <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary" }}>
+                  Simulate New Location
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                  Flag login as from an unusual geographic location
+                </Typography>
+              </Box>
+              <Switch
+                checked={newLocation}
+                onChange={(e) => setNewLocation(e.target.checked)}
+                color="warning"
+                size="small"
+              />
+            </Box>
+
+            <Divider sx={{ mb: 2 }} />
+
+            {loginError && (
+              <Alert severity="error" sx={{ mb: 2, fontSize: 14 }}>
+                {loginError}
+              </Alert>
+            )}
+
             {/* Sign In Button */}
             <Button
               fullWidth
               variant="contained"
-              onClick={onLogin}
+              onClick={handleSubmit}
               sx={{
                 height: 48,
                 // bgcolor: "grey.800",

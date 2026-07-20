@@ -19,24 +19,30 @@ import {
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import TouchAppIcon from "@mui/icons-material/TouchApp";
-import SpeedIcon from "@mui/icons-material/Speed";
-import { getEvents, clearEvents, logEvent, getCachedIp } from "../utils/eventLogger";
+import BugReportIcon from "@mui/icons-material/BugReport";
+import SecurityIcon from "@mui/icons-material/Security";
+import {
+  getEvents,
+  getBufferedEvents,
+  clearEvents,
+  trackEvent,
+  getSessionId,
+  getUserId,
+} from "../utils/eventLogger";
 import type { AppEvent } from "../utils/eventLogger";
 
 export default function AuditLogsPage() {
   const theme = useTheme();
   const [events, setEvents] = useState<AppEvent[]>([]);
-  const [ip, setIp] = useState<string>("127.0.0.1");
+  const [buffered, setBuffered] = useState<AppEvent[]>([]);
 
   const refreshLogs = () => {
     setEvents(getEvents());
-    setIp(getCachedIp());
+    setBuffered(getBufferedEvents());
   };
 
   useEffect(() => {
     refreshLogs();
-    // Refresh periodically
     const interval = setInterval(refreshLogs, 1500);
     return () => clearInterval(interval);
   }, []);
@@ -46,27 +52,47 @@ export default function AuditLogsPage() {
     refreshLogs();
   };
 
-  const handleSingleClick = () => {
-    logEvent("test-single-click-btn", "interactive", "click", { source: "audit-logs-page" });
+  const handleSimulateNormal = () => {
+    trackEvent("LOGIN", { newDevice: false, newLocation: false, username: "john@vault.bank" });
+    trackEvent("VIEW_DASHBOARD", { path: "/" });
+    trackEvent("VIEW_ACCOUNTS", { path: "/accounts" });
+    trackEvent("VIEW_TRANSACTIONS", { path: "/transactions" });
+    trackEvent("VIEW_BENEFICIARIES", { path: "/beneficiaries" });
+    trackEvent("VIEW_SEND_MONEY", { path: "/payments/send-money" });
+    trackEvent("TRANSFER", { amount: 150, currency: "USD", recipientName: "Jane Smith", accountNumber: "jane@example.com" });
+    trackEvent("VIEW_DASHBOARD", { path: "/" });
+    trackEvent("VIEW_SETTINGS", { path: "/settings" });
+    trackEvent("TOGGLE_TRANSACTION_ALERTS", { enabled: true });
+    trackEvent("VIEW_DASHBOARD", { path: "/" });
+    trackEvent("LOGOUT");
     refreshLogs();
   };
 
-  const handleSimulateSpasm = () => {
-    // Generate 5 clicks separated by 50ms to verify click counts in the last 1s
-    for (let i = 1; i <= 5; i++) {
-      setTimeout(() => {
-        logEvent(`spasm-click-btn-${i}`, "interactive-spasm", "click", { clickSequence: i });
-        if (i === 5) {
-          refreshLogs();
-        }
-      }, i * 60);
-    }
+  const handleSimulateFraud = () => {
+    trackEvent("LOGIN", { newDevice: true, newLocation: true, username: "john@vault.bank" });
+    trackEvent("VIEW_DASHBOARD", { path: "/" });
+    trackEvent("VIEW_SETTINGS", { path: "/settings" });
+    trackEvent("CHANGE_EMAIL", { newEmail: "attacker@evil.com" });
+    trackEvent("CHANGE_MOBILE", { newPhone: "+44 7911 123456" });
+    trackEvent("VIEW_BENEFICIARIES", { path: "/beneficiaries" });
+    trackEvent("VIEW_SEND_MONEY", { path: "/payments/send-money" });
+    trackEvent("ADD_PAYEE", { payeeName: "Offshore Account", accountNumber: "OFFSHORE-9988" });
+    trackEvent("VIEW_TRANSACTIONS", { path: "/transactions" });
+    trackEvent("BULK_DOWNLOAD", { recordCount: 500 });
+    trackEvent("VIEW_SEND_MONEY", { path: "/payments/send-money" });
+    trackEvent("TRANSFER", { amount: 25000, currency: "USD", recipientName: "Offshore Account", accountNumber: "OFFSHORE-9988" });
+    trackEvent("LOGOUT");
+    refreshLogs();
   };
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
     boxShadow: "none",
   };
+
+  const sessionId = getSessionId();
+  const userId = getUserId();
+  const allEvents = [...buffered, ...events].sort((a, b) => a.seq - b.seq);
 
   return (
     <Box sx={{ p: 4 }}>
@@ -78,26 +104,43 @@ export default function AuditLogsPage() {
               Interaction & Event Logs
             </Typography>
             <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>
-              Inspect client-side click and navigation telemetry captured for security auditing.
+              Inspect client-side behavioral telemetry captured for fraud detection.
             </Typography>
           </Box>
         </Grid>
 
-        {/* Info Cards & Simulators */}
+        {/* Session Info & Simulators */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Card variant="outlined" sx={cardSx}>
             <CardContent sx={{ p: "25px !important" }}>
               <Typography sx={{ fontSize: 16, fontWeight: 600, color: "text.secondary", mb: 2 }}>
-                Client Metadata
+                Session Info
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <Box display="flex" justifyContent="space-between">
-                  <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Resolved IP:</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{ip}</Typography>
+                  <Typography sx={{ fontSize: 14, color: "text.secondary" }}>User ID:</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, fontFamily: "monospace" }}>
+                    {userId || "—"}
+                  </Typography>
                 </Box>
                 <Box display="flex" justifyContent="space-between">
-                  <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Total Logs:</Typography>
+                  <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Session ID:</Typography>
+                  <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace", wordBreak: "break-all" }}>
+                    {sessionId || "—"}
+                  </Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Flushed:</Typography>
                   <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{events.length}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between">
+                  <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Buffered:</Typography>
+                  <Chip
+                    label={buffered.length}
+                    size="small"
+                    color={buffered.length > 0 ? "warning" : "default"}
+                    sx={{ fontWeight: 600 }}
+                  />
                 </Box>
               </Box>
             </CardContent>
@@ -113,20 +156,20 @@ export default function AuditLogsPage() {
               <Box display="flex" gap={2} flexWrap="wrap">
                 <Button
                   variant="outlined"
-                  startIcon={<TouchAppIcon />}
-                  onClick={handleSingleClick}
+                  startIcon={<SecurityIcon />}
+                  onClick={handleSimulateNormal}
                   sx={{ textTransform: "none" }}
                 >
-                  Trigger Normal Click
+                  Simulate Normal Session
                 </Button>
                 <Button
                   variant="contained"
                   color="warning"
-                  startIcon={<SpeedIcon />}
-                  onClick={handleSimulateSpasm}
+                  startIcon={<BugReportIcon />}
+                  onClick={handleSimulateFraud}
                   sx={{ textTransform: "none", boxShadow: "none" }}
                 >
-                  Trigger Click Spasm (5 clicks in &lt;1s)
+                  Simulate Fraud Session
                 </Button>
                 <Button
                   variant="outlined"
@@ -156,57 +199,57 @@ export default function AuditLogsPage() {
             <Table>
               <TableHead sx={{ bgcolor: "grey.50" }}>
                 <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Seq</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Timestamp</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Event Type</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Action / Target ID</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>IP Address</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">Clicks in Last 1s</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="right">Dwell (ms)</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Metadata</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {events.length === 0 ? (
+                {allEvents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>
                       <HistoryIcon sx={{ fontSize: 40, mb: 1, opacity: 0.3 }} />
-                      <Typography>No events recorded yet. Click around the app or trigger simulation events!</Typography>
+                      <Typography>No events recorded yet. Log in and navigate the app, or use simulation tools!</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  events.map((event) => {
-                    const isSpasm = event.clicksInLastSecond >= 4;
+                  allEvents.map((event, idx) => {
+                    const isInBuffer = idx < buffered.length;
                     return (
-                      <TableRow key={event.id} hover>
-                        <TableCell sx={{ fontSize: 13 }}>
-                          {new Date(event.timestamp).toLocaleTimeString()}
+                      <TableRow key={`${event.sessionId}-${event.seq}`} hover>
+                        <TableCell sx={{ fontFamily: "monospace", fontSize: 13 }}>
+                          {event.seq}
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={event.type.toUpperCase()}
+                            label={event.action}
                             size="small"
-                            color={event.type === "click" ? "primary" : "secondary"}
+                            color={isInBuffer ? "warning" : "primary"}
                             variant="outlined"
                             sx={{ fontWeight: 500, fontSize: 11 }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontFamily: "monospace", fontSize: 13 }}>
-                          {event.actionId}
+                        <TableCell sx={{ fontSize: 13 }}>
+                          {new Date(event.ts).toLocaleTimeString()}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontFamily: "monospace", fontSize: 13 }}>
+                          {event.dwellFromPrevMs}
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={event.category}
+                            label={isInBuffer ? "BUFFERED" : "FLUSHED"}
                             size="small"
-                            sx={{ bgcolor: "grey.100", color: "grey.800", fontSize: 11 }}
+                            color={isInBuffer ? "warning" : "success"}
+                            sx={{ fontWeight: 600, fontSize: 11 }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontSize: 13 }}>{event.ip}</TableCell>
-                        <TableCell align="right">
-                          <Chip
-                            label={event.clicksInLastSecond}
-                            size="small"
-                            color={isSpasm ? "error" : event.clicksInLastSecond > 1 ? "warning" : "default"}
-                            sx={{ fontWeight: 600 }}
-                          />
+                        <TableCell sx={{ fontFamily: "monospace", fontSize: 12, maxWidth: 300 }}>
+                          {Object.keys(event.metadata).length > 0
+                            ? JSON.stringify(event.metadata)
+                            : "—"}
                         </TableCell>
                       </TableRow>
                     );

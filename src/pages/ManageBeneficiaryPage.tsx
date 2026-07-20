@@ -4,6 +4,7 @@ import { Box, Typography, TextField, Button, Autocomplete, Card, CardContent } f
 import Grid from "@mui/material/Grid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useBeneficiary } from "../contexts/BeneficiaryContext";
+import { trackEvent } from "../utils/eventLogger";
 
 const banks = [
   "State Bank of India",
@@ -43,8 +44,10 @@ export default function ManageBeneficiaryPage() {
   const handleSave = () => {
     const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
     if (isEdit && editingBeneficiary) {
+      trackEvent("EDIT_BENEFICIARIES", { beneficiaryId: editingBeneficiary.id, name, email, phone, bank });
       updateBeneficiary({ ...editingBeneficiary, name, email, phone, bank, account, initials });
     } else {
+      trackEvent("ADD_PAYEE", { name, email, phone, bank });
       addBeneficiary({ name, email, phone, bank, account, initials });
     }
     clearEditing();
