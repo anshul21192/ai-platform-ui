@@ -80,19 +80,23 @@ Every event conforms to this structure:
   "action": "TRANSFER",
   "ts": 1784571124942,
   "dwellFromPrevMs": 4023,
-  "metadata": { "amount": "25000", "currency": "USD", "recipientName": "Offshore Account" }
+  "metadata": {
+    "amount": "25000",
+    "currency": "USD",
+    "recipientName": "Offshore Account"
+  }
 }
 ```
 
-| Field            | Type               | Description                                      |
-| ---------------- | ------------------ | ------------------------------------------------ |
-| `userId`         | `string`           | Synthetic user ID (`U1023`, `U9999`)             |
-| `sessionId`      | `string`           | UUID generated per login session                 |
-| `seq`            | `number`           | Monotonically increasing sequence number         |
-| `action`         | `string`           | The event name (see captured actions below)      |
-| `ts`             | `number`           | Unix timestamp in milliseconds                   |
-| `dwellFromPrevMs`| `number`           | Time since previous event in milliseconds        |
-| `metadata`       | `Record<string, any>` | Action-specific payload (see per-action details) |
+| Field             | Type                  | Description                                      |
+| ----------------- | --------------------- | ------------------------------------------------ |
+| `userId`          | `string`              | Synthetic user ID (`U1023`, `U9999`)             |
+| `sessionId`       | `string`              | UUID generated per login session                 |
+| `seq`             | `number`              | Monotonically increasing sequence number         |
+| `action`          | `string`              | The event name (see captured actions below)      |
+| `ts`              | `number`              | Unix timestamp in milliseconds                   |
+| `dwellFromPrevMs` | `number`              | Time since previous event in milliseconds        |
+| `metadata`        | `Record<string, any>` | Action-specific payload (see per-action details) |
 
 ### What Is Captured
 
@@ -100,61 +104,61 @@ Every event conforms to this structure:
 
 Emitted automatically by `NavigationTracker` on every route change. The action is derived from the route via a mapping table.
 
-| Route                    | Action Emitted      | Metadata           |
-| ------------------------ | ------------------- | ------------------ |
-| `/`                      | `VIEW_DASHBOARD`    | `{ path }`         |
-| `/transactions`          | `VIEW_TRANSACTIONS` | `{ path }`         |
-| `/beneficiaries`         | `VIEW_BENEFICIARIES`| `{ path }`         |
-| `/manage-beneficiary`    | `VIEW_MANAGE_BENEFICIARY` | `{ path }`    |
-| `/settings`              | `VIEW_SETTINGS`     | `{ path }`         |
-| `/audit-logs`            | `VIEW_AUDIT_LOGS`   | `{ path }`         |
-| `/payments/send-money`   | `VIEW_SEND_MONEY`   | `{ path }`         |
-| `/payments/request-money`| `VIEW_REQUEST_MONEY`| `{ path }`         |
+| Route                     | Action Emitted            | Metadata   |
+| ------------------------- | ------------------------- | ---------- |
+| `/`                       | `VIEW_DASHBOARD`          | `{ path }` |
+| `/transactions`           | `VIEW_TRANSACTIONS`       | `{ path }` |
+| `/beneficiaries`          | `VIEW_BENEFICIARIES`      | `{ path }` |
+| `/manage-beneficiary`     | `VIEW_MANAGE_BENEFICIARY` | `{ path }` |
+| `/settings`               | `VIEW_SETTINGS`           | `{ path }` |
+| `/audit-logs`             | `VIEW_AUDIT_LOGS`         | `{ path }` |
+| `/payments/send-money`    | `VIEW_SEND_MONEY`         | `{ path }` |
+| `/payments/request-money` | `VIEW_REQUEST_MONEY`      | `{ path }` |
 
 #### Authentication Events
 
-| Action            | Trigger                          | Metadata                                  |
-| ----------------- | -------------------------------- | ----------------------------------------- |
-| `LOGIN`           | Successful login                 | `{ newDevice, newLocation, username }`    |
-| `LOGOUT`          | User clicks logout               | `{}`                                      |
-| `LOGIN_LOCKOUT`   | >3 failed login attempts         | `{ username, failedAttempts }`            |
+| Action          | Trigger                  | Metadata                               |
+| --------------- | ------------------------ | -------------------------------------- |
+| `LOGIN`         | Successful login         | `{ newDevice, newLocation, username }` |
+| `LOGOUT`        | User clicks logout       | `{}`                                   |
+| `LOGIN_LOCKOUT` | >3 failed login attempts | `{ username, failedAttempts }`         |
 
 #### Beneficiary Events
 
-| Action               | Trigger                              | Metadata                                |
-| -------------------- | ------------------------------------ | --------------------------------------- |
-| `ADD_PAYEE`          | Save new beneficiary                 | `{ payeeName, accountNumber }`          |
-| `EDIT_BENEFICIARIES` | Save edited beneficiary              | `{ beneficiaryId, beneficiaryName }`    |
-| `DELETE_BENEFICIARY` | Confirm delete beneficiary           | `{ beneficiaryId, beneficiaryName }`    |
+| Action               | Trigger                    | Metadata                             |
+| -------------------- | -------------------------- | ------------------------------------ |
+| `ADD_PAYEE`          | Save new beneficiary       | `{ payeeName, accountNumber }`       |
+| `EDIT_BENEFICIARIES` | Save edited beneficiary    | `{ beneficiaryId, beneficiaryName }` |
+| `DELETE_BENEFICIARY` | Confirm delete beneficiary | `{ beneficiaryId, beneficiaryName }` |
 
 #### Payment Events
 
-| Action          | Trigger                        | Metadata                                             |
-| --------------- | ------------------------------ | ---------------------------------------------------- |
-| `TRANSFER`      | Submit send money form          | `{ amount, currency, recipientName, accountNumber }`  |
-| `REQUEST_MONEY` | Submit request money form       | `{ amount, currency, recipientName, accountNumber }`  |
+| Action          | Trigger                   | Metadata                                             |
+| --------------- | ------------------------- | ---------------------------------------------------- |
+| `TRANSFER`      | Submit send money form    | `{ amount, currency, recipientName, accountNumber }` |
+| `REQUEST_MONEY` | Submit request money form | `{ amount, currency, recipientName, accountNumber }` |
 
 #### Settings Events
 
-| Action                     | Trigger                              | Metadata                       |
-| -------------------------- | ------------------------------------ | ------------------------------ |
-| `CHANGE_EMAIL`             | (Not yet wired in UI)                | `{ newEmail }`                 |
-| `CHANGE_MOBILE`            | (Not yet wired in UI)                | `{ newPhone }`                 |
-| `CHANGE_PASSWORD`          | Click "Update Password"              | `{ hasNewPassword }`           |
-| `UPDATE_PROFILE`           | Click "Save Changes" in Profile      | `{ email, phone, firstName, lastName }` |
-| `TOGGLE_TRANSACTION_ALERTS`| Toggle transaction alerts switch     | `{ enabled }`                  |
+| Action                      | Trigger                          | Metadata                                |
+| --------------------------- | -------------------------------- | --------------------------------------- |
+| `CHANGE_EMAIL`              | (Not yet wired in UI)            | `{ newEmail }`                          |
+| `CHANGE_MOBILE`             | (Not yet wired in UI)            | `{ newPhone }`                          |
+| `CHANGE_PASSWORD`           | Click "Update Password"          | `{ hasNewPassword }`                    |
+| `UPDATE_PROFILE`            | Click "Save Changes" in Profile  | `{ email, phone, firstName, lastName }` |
+| `TOGGLE_TRANSACTION_ALERTS` | Toggle transaction alerts switch | `{ enabled }`                           |
 
 #### Bulk Operations
 
-| Action          | Trigger                     | Metadata              |
-| --------------- | --------------------------- | --------------------- |
+| Action          | Trigger                            | Metadata          |
+| --------------- | ---------------------------------- | ----------------- |
 | `BULK_DOWNLOAD` | Click "Export All" on transactions | `{ recordCount }` |
 
 #### Navigation Anomaly Detection
 
-| Action                | Trigger                                                                 | Metadata                                              |
-| --------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------- |
-| `DIRECT_ROUTE_ACCESS` | User navigates to a sensitive route without visiting a valid predecessor | `{ targetRoute, previousRoute, navHistory, reason }`  |
+| Action                | Trigger                                                                  | Metadata                                             |
+| --------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| `DIRECT_ROUTE_ACCESS` | User navigates to a sensitive route without visiting a valid predecessor | `{ targetRoute, previousRoute, navHistory, reason }` |
 
 ### When Events Are Buffered
 
@@ -164,11 +168,11 @@ All events are pushed into an in-memory buffer as they occur. The buffer accumul
 
 Events are flushed (sent to backend and persisted) in these scenarios:
 
-| Scenario                | Description                                                              |
-| ----------------------- | ------------------------------------------------------------------------ |
-| **Sensitive action**    | Any action in the `SENSITIVE_ACTIONS` set triggers an immediate flush    |
-| **Logout**              | `clearSession()` calls `flush()` before clearing state                   |
-| **Session clear**       | `clearEvents()` flushes then wipes localStorage                          |
+| Scenario             | Description                                                           |
+| -------------------- | --------------------------------------------------------------------- |
+| **Sensitive action** | Any action in the `SENSITIVE_ACTIONS` set triggers an immediate flush |
+| **Logout**           | `clearSession()` calls `flush()` before clearing state                |
+| **Session clear**    | `clearEvents()` flushes then wipes localStorage                       |
 
 ### Sensitive Actions (trigger immediate flush)
 
@@ -207,10 +211,10 @@ Events like `LOGIN_LOCKOUT` occur before a session is established. These are tra
 
 ### Demo Credentials
 
-| Username            | Password | User ID | Role     |
-| ------------------- | -------- | ------- | -------- |
-| `john@vault.bank`   | `demo123`| `U1023` | Normal   |
-| `attacker@evil.com` | `stolen` | `U9999` | Attacker |
+| Username            | Password  | User ID | Role     |
+| ------------------- | --------- | ------- | -------- |
+| `john@vault.bank`   | `demo123` | `U1023` | Normal   |
+| `attacker@evil.com` | `stolen`  | `U9999` | Attacker |
 
 ### Audit Logs Simulator
 
