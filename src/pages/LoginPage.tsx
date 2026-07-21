@@ -23,6 +23,8 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
 import { useAuth } from "../contexts/AuthContext";
+import { useKeystrokeDynamics } from "../hooks/useKeystrokeDynamics";
+import { sendKeystrokeMetrics } from "../api/keystrokeAnalysis";
 
 export default function LoginPage() {
   const { login, loginError, clearLoginError } = useAuth();
@@ -33,12 +35,39 @@ export default function LoginPage() {
   const [newDevice, setNewDevice] = useState(false);
   const [newLocation, setNewLocation] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearLoginError();
-    const success = login(username, password, newDevice, newLocation);
-    if (success) navigate("/");
+  
+    console.log("Metrics before sending:", metrics);
+  
+    try {
+      await sendKeystrokeMetrics(metrics);
+  
+      resetMetrics();
+  
+      const success = login(
+        username,
+        password,
+        newDevice,
+        newLocation
+      );
+  
+      if (success) {
+        navigate("/");
+      }
+  
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  const {
+    metrics,
+    handleKeyDown,
+    handleKeyUp,
+    resetMetrics,
+  } = useKeystrokeDynamics();
 
   return (
     <Box
@@ -163,6 +192,8 @@ export default function LoginPage() {
               placeholder="Ex: john@vault.bank"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -192,6 +223,8 @@ export default function LoginPage() {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onKeyUp={handleKeyUp}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -311,7 +344,6 @@ export default function LoginPage() {
               variant="contained"
               sx={{
                 height: 48,
-                // bgcolor: "grey.800",
                 textTransform: "none",
                 fontSize: 16,
                 fontWeight: 500,
