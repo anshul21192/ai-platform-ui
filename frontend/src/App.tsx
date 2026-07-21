@@ -16,6 +16,8 @@ import PageLayout from "./components/PageLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { BeneficiaryProvider } from "./contexts/BeneficiaryContext";
 import { logNavigation } from "./utils/eventLogger";
+import RiskDashboardPage from "./pages/RiskDashboardPage";
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -58,6 +60,7 @@ export default function App() {
                     <Route path="/payments/send-money" element={<SendMoneyPage />} />
                     <Route path="/payments/request-money" element={<RequestMoneyPage />} />
                     <Route path="/audit-logs" element={<AuditLogsPage />} />
+                    <Route path="/risk-dashboard" element={<RiskDashboardPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </BeneficiaryProvider>

@@ -25,6 +25,7 @@ const DRAWER_WIDTH = 256;
 const navItems = [
   { label: "Overview", icon: <DashboardIcon />, path: "/" },
   { label: "Transactions", icon: <SwapHorizIcon />, path: "/transactions" },
+  { label: "Risk Dashboard", icon: <BarChartIcon />, path: "/risk-dashboard" },
   { label: "Analytics", icon: <BarChartIcon />, path: "/analytics", disabled: true },
   {
     label: "Payments",
