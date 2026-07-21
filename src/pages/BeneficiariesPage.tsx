@@ -10,6 +10,11 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AddIcon from "@mui/icons-material/Add";
@@ -18,12 +23,14 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BeneficiaryCard from "../components/BeneficiaryCard";
 import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
+import { trackEvent } from "../utils/eventLogger";
 
 export default function BeneficiariesPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuTarget, setMenuTarget] = useState<Beneficiary | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { beneficiaries, removeBeneficiary, navigateToAdd, navigateToEdit } = useBeneficiary();
 
   const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, beneficiary: Beneficiary) => {
@@ -38,23 +45,33 @@ export default function BeneficiariesPage() {
 
   const handleEdit = () => {
     if (menuTarget) {
+      trackEvent("EDIT_BENEFICIARY", { beneficiaryId: menuTarget.id, beneficiaryName: menuTarget.name });
       navigateToEdit(menuTarget);
     }
     handleMenuClose();
   };
 
   const handleDelete = () => {
-    if (menuTarget) {
-      removeBeneficiary(menuTarget.id);
-    }
+    setDeleteConfirmOpen(true);
     handleMenuClose();
   };
 
+  const confirmDelete = () => {
+    if (menuTarget) {
+      trackEvent("DELETE_BENEFICIARY", { beneficiaryId: menuTarget.id, beneficiaryName: menuTarget.name });
+      removeBeneficiary(menuTarget.id);
+    }
+    setDeleteConfirmOpen(false);
+    setMenuTarget(null);
+  };
+
   const handleSendMoney = (beneficiary: Beneficiary) => {
+    trackEvent("TRANSFER", { beneficiaryId: beneficiary.id, beneficiaryName: beneficiary.name });
     navigate("/payments/send-money", { state: { beneficiary } });
   };
 
   const handleRequestMoney = (beneficiary: Beneficiary) => {
+    trackEvent("REQUEST_MONEY", { beneficiaryId: beneficiary.id, beneficiaryName: beneficiary.name });
     navigate("/payments/request-money", { state: { beneficiary } });
   };
 
@@ -103,7 +120,7 @@ export default function BeneficiariesPage() {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={navigateToAdd}
+              onClick={() => { trackEvent("ADD_PAYEE"); navigateToAdd(); }}
               sx={{
                 textTransform: "none",
                 px: 2,
@@ -157,11 +174,23 @@ export default function BeneficiariesPage() {
         </Grid>
 
         {/* Beneficiary Cards */}
-        {filtered.map((b) => (
-          <Grid key={b.id} size={{ md: 6, lg: 4 }}>
-            <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} onSendMoney={() => handleSendMoney(b)} onRequestMoney={() => handleRequestMoney(b)} />
+        {filtered.length === 0 ? (
+          <Grid size={12}>
+            <Box sx={{ textAlign: "center", py: 8 }}>
+                            <Typography
+                component="h1"
+                sx={{ color: "text.secondary", fontSize: 14 }}>
+                {search ? "No beneficiaries match your search." : "No beneficiaries yet. Add one to get started."}
+              </Typography>
+            </Box>
           </Grid>
-        ))}
+        ) : (
+          filtered.map((b) => (
+            <Grid key={b.id} size={{ md: 6, lg: 4 }}>
+              <BeneficiaryCard {...b} onMenuOpen={(e) => handleMenuOpen(e, b)} onSendMoney={() => handleSendMoney(b)} onRequestMoney={() => handleRequestMoney(b)} />
+            </Grid>
+          ))
+        )}
 
         {/* Context Menu */}
         <Menu
@@ -198,6 +227,20 @@ export default function BeneficiariesPage() {
             />
           </MenuItem>
         </Menu>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+          <DialogTitle>Delete Beneficiary</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete {menuTarget?.name}? This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={confirmDelete} color="error" variant="contained">Delete</Button>
+          </DialogActions>
+        </Dialog>
       </Grid>
     </Box>
   );

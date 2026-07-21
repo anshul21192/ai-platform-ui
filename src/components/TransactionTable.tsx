@@ -40,8 +40,8 @@ function resolveColor(key: string, theme: Theme): string {
   if (parts.length === 2) {
     const [group, shade] = parts;
     const paletteGroup = theme.palette[group as keyof typeof theme.palette];
-    if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as Record<string, string>)) {
-      return (paletteGroup as Record<string, string>)[shade];
+    if (paletteGroup && typeof paletteGroup === "object" && shade in (paletteGroup as unknown as Record<string, string>)) {
+      return (paletteGroup as unknown as Record<string, string>)[shade];
     }
   }
   return key;
@@ -160,24 +160,32 @@ export default function TransactionTable({ title, transactions, columns }: Trans
           </TableRow>
         </TableHead>
         <TableBody>
-          {transactions.map((tx) => (
-            <TableRow key={`${tx.name}-${tx.date}`} sx={{ borderBottom: `1px solid ${theme.palette.grey[100]}` }}>
-              {cols.map((col) => (
-                <TableCell
-                  key={col.key}
-                  sx={{
-                    py: 2,
-                    px: 2,
-                    textAlign: col.align ?? "left",
-                    border: "none",
-                    ...col.cellSx,
-                  }}
-                >
-                  {col.render ? col.render(tx) : defaultRenderCell(tx, col.key, theme)}
-                </TableCell>
-              ))}
+          {transactions.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={cols.length} sx={{ textAlign: "center", py: 6, border: "none" }}>
+                <Typography sx={{ color: "text.secondary", fontSize: 14 }}>No transactions found.</Typography>
+              </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            transactions.map((tx, idx) => (
+              <TableRow key={`${tx.name}-${tx.date}-${idx}`} sx={{ borderBottom: `1px solid ${theme.palette.grey[100]}` }}>
+                {cols.map((col) => (
+                  <TableCell
+                    key={col.key}
+                    sx={{
+                      py: 2,
+                      px: 2,
+                      textAlign: col.align ?? "left",
+                      border: "none",
+                      ...col.cellSx,
+                    }}
+                  >
+                    {col.render ? col.render(tx) : defaultRenderCell(tx, col.key, theme)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </Box>

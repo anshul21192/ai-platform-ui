@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography, Alert, useTheme } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import GroupIcon from "@mui/icons-material/Group";
@@ -24,18 +24,42 @@ export default function DashboardPage() {
   const theme = useTheme();
   const { beneficiaries } = useBeneficiary();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
+    setError(null);
     fetchSummaryTransactions({ signal: controller.signal })
-      .then(setTransactions)
+      .then((data) => { setTransactions(data); setLoading(false); })
       .catch((e) => {
-        if (e.name !== "AbortError") console.error(e);
+        if (e.name !== "AbortError") {
+          console.error(e);
+          setError("Failed to load transactions.");
+          setLoading(false);
+        }
       });
     return () => controller.abort();
   }, []);
 
   const pendingCount = transactions.filter((t) => t.status === "pending").length;
+
+  if (error) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="info">Loading dashboard...</Alert>
+      </Box>
+    );
+  }
 
   const statCards = [
     {
@@ -76,7 +100,7 @@ export default function DashboardPage() {
       <Grid container spacing={3}>
         {/* Header */}
         <Grid size={12}>
-          <Typography sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px", letterSpacing: "0.3955px" }}>
+          <Typography component="h1" sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px", letterSpacing: "0.3955px" }}>
             Account Overview
           </Typography>
           <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>

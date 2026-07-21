@@ -15,6 +15,10 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import SavingsIcon from '@mui/icons-material/Savings';
 import MenuIcon from "@mui/icons-material/Menu";
+import HistoryIcon from "@mui/icons-material/History";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { trackEvent } from "../utils/eventLogger";
+import { useAuth } from "../contexts/AuthContext";
 
 const DRAWER_WIDTH = 256;
 
@@ -37,6 +41,7 @@ const navItems = [
   { label: "Beneficiaries", icon: <PeopleIcon />, path: "/beneficiaries" },
   { label: "Quick Actions", icon: <BoltIcon />, expandable: true, path: "/quick-actions", disabled: true },
   { label: "Settings", icon: <SettingsIcon />, path: "/settings" },
+  { label: "Event Logs", icon: <HistoryIcon />, path: "/audit-logs" },
 ];
 
 interface SidebarProps {
@@ -48,6 +53,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: (path: string) => void })
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { displayName, username, logout } = useAuth();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const nav = (path: string) => {
@@ -177,16 +183,24 @@ function SidebarContent({ onNavigate }: { onNavigate?: (path: string) => void })
               fontWeight: 600,
             }}
           >
-            JD
+            {displayName?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "?"}
           </Avatar>
-          <Box>
+          <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: 14, fontWeight: 500, color: "text.primary", lineHeight: "20px" }}>
-              John Doe
+              {displayName || "Guest"}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: "16px" }}>
-              john@example.com
+              {username || ""}
             </Typography>
           </Box>
+          <IconButton
+            size="small"
+            onClick={() => { trackEvent("LOGOUT"); logout(); }}
+            aria-label="Logout"
+            sx={{ color: "grey.500" }}
+          >
+            <LogoutIcon sx={{ fontSize: 18 }} />
+          </IconButton>
         </Box>
       </Box>
     </Box>

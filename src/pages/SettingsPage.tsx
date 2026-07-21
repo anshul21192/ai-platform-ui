@@ -1,11 +1,12 @@
-import { useReducer } from "react";
-import { Box, Typography, TextField, Button, Card, CardContent, Switch, useTheme } from "@mui/material";
+import { useReducer, useState } from "react";
+import { Box, Typography, TextField, Button, Card, CardContent, Switch, Alert, useTheme } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
+import { trackEvent } from "../utils/eventLogger";
 
 const languages = ["English", "Spanish", "French", "German", "Hindi"];
 const currencies = ["USD - US Dollar", "EUR - Euro", "GBP - British Pound", "INR - Indian Rupee", "JPY - Japanese Yen"];
@@ -42,7 +43,7 @@ const initialState: SettingsState = {
   confirmPassword: "",
   emailNotifications: true,
   pushNotifications: true,
-  transactionAlerts: false,
+  transactionAlerts: true,
   weeklySummary: true,
   twoFactor: false,
   language: "English",
@@ -146,8 +147,21 @@ function ToggleRow({ title, description, checked, onChange }: ToggleRowProps) {
 export default function SettingsPage() {
   const theme = useTheme();
   const [state, dispatch] = useReducer(settingsReducer, initialState);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const set = (field: keyof SettingsState) => (value: string | boolean) =>
     dispatch({ type: "SET_FIELD", field, value });
+
+  const handleSaveProfile = () => {
+    trackEvent("UPDATE_PROFILE", { email: state.email, phone: state.phone, firstName: state.firstName, lastName: state.lastName });
+    setSaveMessage("Profile saved successfully.");
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
+
+  const handleUpdatePassword = () => {
+    trackEvent("CHANGE_PASSWORD", { hasNewPassword: Boolean(state.newPassword) });
+    setSaveMessage("Password updated successfully.");
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
 
   const cardSx = {
     border: `1px solid ${theme.palette.divider}`,
@@ -158,12 +172,13 @@ export default function SettingsPage() {
     <Box sx={{ p: 4 }}>
       <Grid container spacing={3}>
         <Grid size={12}>
-          <Typography sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
+          <Typography component="h1" sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
             Settings
           </Typography>
           <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>
             Manage your account settings and preferences
           </Typography>
+          {saveMessage && <Alert severity="success" sx={{ mt: 2 }}>{saveMessage}</Alert>}
         </Grid>
 
         {/* Profile Settings */}
@@ -184,6 +199,7 @@ export default function SettingsPage() {
                 <FieldRow label="Phone Number" value={state.phone} onChange={set("phone")} />
                 <Button
                   variant="contained"
+                  onClick={handleSaveProfile}
                     sx={{
                       height: 36,
                       fontSize: 14,
@@ -207,7 +223,7 @@ export default function SettingsPage() {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <ToggleRow title="Email Notifications" description="Receive email updates about your account" checked={state.emailNotifications} onChange={set("emailNotifications")} />
                 <ToggleRow title="Push Notifications" description="Receive push notifications on your device" checked={state.pushNotifications} onChange={set("pushNotifications")} />
-                <ToggleRow title="Transaction Alerts" description="Get notified about every transaction" checked={state.transactionAlerts} onChange={set("transactionAlerts")} />
+                <ToggleRow title="Transaction Alerts" description="Get notified about every transaction" checked={state.transactionAlerts} onChange={(val) => { set("transactionAlerts")(val); trackEvent("TOGGLE_TRANSACTION_ALERTS", { enabled: val }); }} />
                 <ToggleRow title="Weekly Summary" description="Receive a weekly summary of your activity" checked={state.weeklySummary} onChange={set("weeklySummary")} />
               </Box>
             </CardContent>
@@ -226,6 +242,7 @@ export default function SettingsPage() {
                 <ToggleRow title="Two-Factor Authentication" description="Add an extra layer of security" checked={state.twoFactor} onChange={set("twoFactor")} />
                 <Button
                   variant="contained"
+                  onClick={handleUpdatePassword}
                     sx={{
                       height: 36,
                       fontSize: 14,

@@ -16,6 +16,7 @@ import {
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
+import { trackEvent } from "../utils/eventLogger";
 
 const inputSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
@@ -47,6 +48,7 @@ export interface PaymentFormConfig {
   feeLabel: string;
   infoBoxTitle: string;
   infoBoxDescription: string;
+  submitAction: string;
 }
 
 interface PaymentFormProps {
@@ -82,8 +84,13 @@ export default function PaymentForm({ config }: PaymentFormProps) {
     setCurrency(event.target.value);
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber });
+  };
+
   return (
-    <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 4, p: 4 }} onSubmit={(e) => e.preventDefault()}>
+    <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 4, p: 4 }} onSubmit={handleSubmit}>
       {/* Header */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Typography
@@ -276,6 +283,7 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    inputProps={{ inputMode: "decimal", pattern: "[0-9]*\\.?[0-9]+" }}
                     sx={{
                       ...inputSx,
                       "& .MuiOutlinedInput-root": {

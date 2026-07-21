@@ -22,6 +22,26 @@ import SearchIcon from "@mui/icons-material/Search";
 import TransactionTable from "../components/TransactionTable";
 import type { Transaction, Column } from "../components/TransactionTable";
 import { fetchDetailedTransactions } from "../api/transactions";
+import { trackEvent } from "../utils/eventLogger";
+
+function downloadCsv(transactions: Transaction[]) {
+  const headers = ["Name", "Category", "Date", "Status", "Amount"];
+  const rows = transactions.map((t) => [
+    t.name,
+    t.category ?? "",
+    t.date,
+    t.status,
+    t.amount,
+  ]);
+  const csv = [headers.join(","), ...rows.map((r) => r.map((v) => `"${v}"`).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "transactions.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const STATUS_OPTIONS = [
   { value: "completed", label: "Completed" },
@@ -41,6 +61,8 @@ export default function TransactionsPage() {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilters, setStatusFilters] = useState<string[]>(() => {
     const initial = searchParams.get("status");
     return initial ? [initial] : [];
@@ -61,10 +83,16 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
+    setError(null);
     fetchDetailedTransactions(search, { signal: controller.signal, status: statusFilters })
-      .then(setTransactions)
+      .then((data) => { setTransactions(data); setLoading(false); })
       .catch((e) => {
-        if (e.name !== "AbortError") console.error(e);
+        if (e.name !== "AbortError") {
+          console.error(e);
+          setError("Failed to load transactions.");
+          setLoading(false);
+        }
       });
     return () => controller.abort();
   }, [search, statusFilters]);
@@ -76,7 +104,7 @@ export default function TransactionsPage() {
         <Grid size={12}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Box>
-              <Typography sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
+              <Typography component="h1" sx={{ fontSize: 30, fontWeight: 600, color: "text.primary", lineHeight: "36px" }}>
                 Transactions
               </Typography>
               <Typography sx={{ fontSize: 16, color: "text.secondary", lineHeight: "24px", mt: 1 }}>
@@ -86,6 +114,7 @@ export default function TransactionsPage() {
             <Button
               variant="contained"
               startIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                onClick={() => { trackEvent("BULK_DOWNLOAD", { recordCount: transactions.length }); downloadCsv(transactions); }}
                 sx={{
                   height: 36,
                   fontSize: 14,
@@ -95,7 +124,7 @@ export default function TransactionsPage() {
                   px: 2,
                 }}
             >
-              Export
+              Export All
             </Button>
           </Box>
         </Grid>
@@ -216,7 +245,21 @@ export default function TransactionsPage() {
 
         {/* Table */}
         <Grid size={12}>
-          <TransactionTable transactions={transactions} columns={tableColumns} />
+          {loading ? (
+            <Card variant="outlined" sx={{ border: `1px solid ${theme.palette.divider}`, boxShadow: "none" }}>
+              <CardContent sx={{ p: "25px !important", textAlign: "center" }}>
+                <Typography sx={{ color: "text.secondary", fontSize: 14 }}>Loading transactions...</Typography>
+              </CardContent>
+            </Card>
+          ) : error ? (
+            <Card variant="outlined" sx={{ border: `1px solid ${theme.palette.divider}`, boxShadow: "none" }}>
+              <CardContent sx={{ p: "25px !important", textAlign: "center" }}>
+                <Typography sx={{ color: "error.main", fontSize: 14 }}>{error}</Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <TransactionTable transactions={transactions} columns={tableColumns} />
+          )}
         </Grid>
       </Grid>
     </Box>

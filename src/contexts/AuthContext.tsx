@@ -1,0 +1,114 @@
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
+import { authenticate, createSessionId, type AuthUser } from "../utils/auth";
+import { setSession, clearSession, trackEvent, flush, clearEvents } from "../utils/eventLogger";
+
+const SESSION_KEY = "vault_bank_session";
+const MAX_FAILED_ATTEMPTS = 3;
+
+interface SessionData {
+  user: AuthUser;
+  sessionId: string;
+  newDevice: boolean;
+  newLocation: boolean;
+}
+
+interface AuthContextValue {
+  userId: string | null;
+  displayName: string | null;
+  username: string | null;
+  sessionId: string | null;
+  isAuthenticated: boolean;
+  loginError: string | null;
+  login: (username: string, password: string, newDevice: boolean, newLocation: boolean) => boolean;
+  logout: () => void;
+  clearLoginError: () => void;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+function loadSession(): SessionData | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SessionData;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(data: SessionData): void {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+}
+
+function removeSession(): void {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSessionState] = useState<SessionData | null>(loadSession);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const failedAttempts = useRef(0);
+
+  const login = useCallback((username: string, password: string, newDevice: boolean, newLocation: boolean): boolean => {
+    const user = authenticate(username, password);
+    if (!user) {
+      failedAttempts.current++;
+      if (failedAttempts.current > MAX_FAILED_ATTEMPTS) {
+        trackEvent("LOGIN_LOCKOUT", { username, failedAttempts: failedAttempts.current });
+        flush();
+        setLoginError("Account temporarily locked. Too many failed attempts.");
+      } else {
+        setLoginError("Invalid username or password");
+      }
+      return false;
+    }
+
+    const sessionId = createSessionId();
+    const data: SessionData = { user, sessionId, newDevice, newLocation };
+
+    saveSession(data);
+    setSessionState(data);
+    setLoginError(null);
+    failedAttempts.current = 0;
+
+    setSession(user.userId, sessionId);
+    trackEvent("LOGIN", { newDevice, newLocation, username });
+
+    if (newDevice || newLocation) {
+      flush();
+    }
+
+    return true;
+  }, []);
+
+  const logout = useCallback(() => {
+    trackEvent("LOGOUT");
+    flush();
+    clearEvents();
+    clearSession();
+    removeSession();
+    setSessionState(null);
+  }, []);
+
+  const clearLoginError = useCallback(() => setLoginError(null), []);
+
+  const value: AuthContextValue = {
+    userId: session?.user.userId ?? null,
+    displayName: session?.user.displayName ?? null,
+    username: session?.user.username ?? null,
+    sessionId: session?.sessionId ?? null,
+    isAuthenticated: session !== null,
+    loginError,
+    login,
+    logout,
+    clearLoginError,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}
