@@ -1,6 +1,7 @@
 # Risk Dashboard — Technical & Functional Specification
 
-![Uploading image.png…]()
+<img width="1164" height="767" alt="image" src="https://github.com/user-attachments/assets/eeb44436-5e76-4dd4-a7a8-e33f335f7065" />
+
 
 
 ## Purpose
