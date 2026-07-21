@@ -1,3 +1,4 @@
+const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 export interface AppEvent {
   userId: string;
   sessionId: string;
@@ -118,7 +119,7 @@ export function flush(): void {
 
   if (currentSessionId || eventsToFlush.length > 0) {
     const sessionId = currentSessionId ?? eventsToFlush[0]?.sessionId ?? "unknown";
-    fetch("/api/v1/fraud/telemetry/events", {
+    fetch(`${VITE_API_BASE_URL}/v1/fraud/telemetry/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, events: eventsToFlush }),
