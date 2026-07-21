@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 
-interface Metrics {
+export interface KeystrokeMetrics {
   averageDwellTime: number;
   averageFlightTime: number;
   typingSpeed: number;
@@ -10,7 +10,7 @@ interface Metrics {
 }
 
 export const useKeystrokeDynamics = () => {
-  const [metrics, setMetrics] = useState<Metrics>({
+  const [metrics, setMetrics] = useState<KeystrokeMetrics>({
     averageDwellTime: 0,
     averageFlightTime: 0,
     typingSpeed: 0,
@@ -20,25 +20,44 @@ export const useKeystrokeDynamics = () => {
   });
 
   const keyDownTimes = useRef<Map<string, number>>(new Map());
+  const firstKeyDownTime = useRef<number | null>(null);
   const previousKeyUpTime = useRef<number | null>(null);
   const totalDwellTimes = useRef<number>(0);
   const totalFlightTimes = useRef<number>(0);
   const totalKeystrokes = useRef<number>(0);
   const backspaceCount = useRef<number>(0);
   const pauseCount = useRef<number>(0);
-
   const lastKeyUpTime = useRef<number | null>(null);
+
+  const getMetrics = useCallback((): KeystrokeMetrics => {
+    const total = totalKeystrokes.current;
+    const now = performance.now();
+    const elapsedSeconds = firstKeyDownTime.current
+      ? (now - firstKeyDownTime.current) / 1000
+      : 0;
+
+    return {
+      averageDwellTime: total > 0 ? totalDwellTimes.current / total : 0,
+      averageFlightTime: total > 1 ? totalFlightTimes.current / (total - 1) : 0,
+      typingSpeed: elapsedSeconds > 0 ? total / elapsedSeconds : 0,
+      totalKeystrokes: total,
+      backspaceCount: backspaceCount.current,
+      pauseCount: pauseCount.current,
+    };
+  }, []);
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     const key = event.key;
     const now = performance.now();
 
-    // Record keyDown time if not already recorded
+    if (firstKeyDownTime.current === null) {
+      firstKeyDownTime.current = now;
+    }
+
     if (!keyDownTimes.current.has(key)) {
       keyDownTimes.current.set(key, now);
     }
 
-    // Check for pauses (time between key presses > 500ms)
     if (lastKeyUpTime.current && now - lastKeyUpTime.current > 500) {
       pauseCount.current += 1;
     }
@@ -48,7 +67,6 @@ export const useKeystrokeDynamics = () => {
     const key = event.key;
     const now = performance.now();
 
-    // Calculate dwell time
     if (keyDownTimes.current.has(key)) {
       const keyDownTime = keyDownTimes.current.get(key)!;
       const dwellTime = now - keyDownTime;
@@ -58,42 +76,33 @@ export const useKeystrokeDynamics = () => {
 
       keyDownTimes.current.delete(key);
 
-      // Calculate flight time
       if (previousKeyUpTime.current !== null) {
         const flightTime = keyDownTime - previousKeyUpTime.current;
         totalFlightTimes.current += flightTime;
       }
 
       previousKeyUpTime.current = now;
-
-      // Update metrics
-      setMetrics({
-        averageDwellTime: totalDwellTimes.current / totalKeystrokes.current,
-        averageFlightTime: totalFlightTimes.current / (totalKeystrokes.current - 1 || 1),
-        typingSpeed: totalKeystrokes.current / (now / 1000),
-        totalKeystrokes: totalKeystrokes.current,
-        backspaceCount: backspaceCount.current,
-        pauseCount: pauseCount.current,
-      });
     }
 
-    // Count backspace presses
     if (key === "Backspace") {
       backspaceCount.current += 1;
     }
 
-    // Update last key up time
     lastKeyUpTime.current = now;
-  }, []);
+
+    setMetrics(getMetrics());
+  }, [getMetrics]);
 
   const resetMetrics = useCallback(() => {
     keyDownTimes.current.clear();
+    firstKeyDownTime.current = null;
     previousKeyUpTime.current = null;
     totalDwellTimes.current = 0;
     totalFlightTimes.current = 0;
     totalKeystrokes.current = 0;
     backspaceCount.current = 0;
     pauseCount.current = 0;
+    lastKeyUpTime.current = null;
 
     setMetrics({
       averageDwellTime: 0,
@@ -105,5 +114,5 @@ export const useKeystrokeDynamics = () => {
     });
   }, []);
 
-  return { metrics, handleKeyDown, handleKeyUp, resetMetrics };
+  return { metrics, getMetrics, handleKeyDown, handleKeyUp, resetMetrics };
 };

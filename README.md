@@ -115,13 +115,14 @@ Emitted automatically by `NavigationTracker` on every route change. The action i
 | `/payments/send-money`    | `VIEW_SEND_MONEY`         | `{ path }` |
 | `/payments/request-money` | `VIEW_REQUEST_MONEY`      | `{ path }` |
 
-#### Authentication Events
+#### Authentication & Biometric Events
 
-| Action          | Trigger                  | Metadata                               |
-| --------------- | ------------------------ | -------------------------------------- |
-| `LOGIN`         | Successful login         | `{ newDevice, newLocation, username }` |
-| `LOGOUT`        | User clicks logout       | `{}`                                   |
-| `LOGIN_LOCKOUT` | >3 failed login attempts | `{ username, failedAttempts }`         |
+| Action               | Trigger                           | Metadata                                                                                             |
+| -------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `LOGIN`              | Successful login                  | `{ newDevice, newLocation, username }`                                                               |
+| `KEYSTROKE_DYNAMICS` | Keystroke dynamics biometrics log | `{ averageDwellTime, averageFlightTime, typingSpeed, totalKeystrokes, backspaceCount, pauseCount }` |
+| `LOGOUT`             | User clicks logout                | `{}`                                                                                                 |
+| `LOGIN_LOCKOUT`      | >3 failed login attempts          | `{ username, failedAttempts }`                                                                       |
 
 #### Beneficiary Events
 

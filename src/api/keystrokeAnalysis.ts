@@ -1,20 +1,10 @@
-export const sendKeystrokeMetrics = async (metrics: object) => {
+import { trackEvent, type AppEvent } from "../utils/eventLogger";
+
+export const sendKeystrokeMetrics = (metrics: object): AppEvent | null => {
   try {
-    const response = await fetch("/api/keystroke-analysis", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(metrics),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to send keystroke metrics");
-    }
-
-    return await response.json();
+    return trackEvent("KEYSTROKE_DYNAMICS", metrics);
   } catch (error) {
-    console.error("Error sending keystroke metrics:", error);
-    throw error;
+    console.error("Error logging keystroke metrics:", error);
+    return null;
   }
 };

@@ -24,7 +24,6 @@ import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
 import { useAuth } from "../contexts/AuthContext";
 import { useKeystrokeDynamics } from "../hooks/useKeystrokeDynamics";
-import { sendKeystrokeMetrics } from "../api/keystrokeAnalysis";
 
 export default function LoginPage() {
   const { login, loginError, clearLoginError } = useAuth();
@@ -35,39 +34,38 @@ export default function LoginPage() {
   const [newDevice, setNewDevice] = useState(false);
   const [newLocation, setNewLocation] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearLoginError();
-  
-    console.log("Metrics before sending:", metrics);
-  
-    try {
-      await sendKeystrokeMetrics(metrics);
-  
-      resetMetrics();
-  
-      const success = login(
-        username,
-        password,
-        newDevice,
-        newLocation
-      );
-  
-      if (success) {
-        navigate("/");
-      }
-  
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const {
-    metrics,
+    getMetrics,
     handleKeyDown,
     handleKeyUp,
     resetMetrics,
   } = useKeystrokeDynamics();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearLoginError();
+
+    const currentMetrics = getMetrics();
+    console.log("Metrics before sending:", currentMetrics);
+
+    try {
+      const success = login(
+        username,
+        password,
+        newDevice,
+        newLocation,
+        currentMetrics
+      );
+
+      resetMetrics();
+
+      if (success) {
+        navigate("/");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <Box
