@@ -153,39 +153,33 @@ docker compose version
 
 ---
 
-### Build Containers
+## Option 2 – Run using Podman
 
-From the project root:
+### Prerequisites
+
+- Podman
+- Podman Compose
+
+Verify installation
 
 ```bash
-docker compose build
+podman --version
+podman compose version
 ```
 
 ---
 
-### Build and Run
+### Command Reference
 
-```bash
-docker compose up --build
-```
+From the project root:
 
-Run in detached mode
-
-```bash
-docker compose up --build -d
-```
-
-Stop containers
-
-```bash
-docker compose down
-```
-
-View logs
-
-```bash
-docker compose logs -f
-```
+| Action            | Docker                      | Podman                      |
+| ----------------- | --------------------------- | --------------------------- |
+| Build images      | `docker compose build`      | `podman compose build`      |
+| Build & run       | `docker compose up --build` | `podman compose up --build` |
+| Run in background | `docker compose up -d`      | `podman compose up -d`      |
+| Stop containers   | `docker compose down`       | `podman compose down`       |
+| View logs         | `docker compose logs -f`    | `podman compose logs -f`    |
 
 ---
 
@@ -211,7 +205,7 @@ http://localhost:8000/docs
 
 ---
 
-## Option 2 – Run Locally (Without Docker)
+## Option 3 – Run Locally (Without Containers)
 
 ### Frontend
 
@@ -340,7 +334,7 @@ Responsibilities
 
 ---
 
-# Docker Compose
+# Container Orchestration
 
 ```
 docker-compose.yml
@@ -377,34 +371,34 @@ Pipeline Responsibilities
 
 # Common Commands
 
-### Build Docker Images
+### Build Container Images
 
 ```bash
-docker compose build
+docker compose build    # or: podman compose build
 ```
 
 ### Run Application
 
 ```bash
-docker compose up --build
+docker compose up --build    # or: podman compose up --build
 ```
 
 ### Run in Background
 
 ```bash
-docker compose up -d
+docker compose up -d    # or: podman compose up -d
 ```
 
 ### Stop Containers
 
 ```bash
-docker compose down
+docker compose down    # or: podman compose down
 ```
 
 ### View Logs
 
 ```bash
-docker compose logs -f
+docker compose logs -f    # or: podman compose logs -f
 ```
 
 ### Frontend Only
@@ -425,12 +419,12 @@ uvicorn app.main:app --reload
 
 # Technology Stack
 
-| Layer            | Technology              |
-| ---------------- | ----------------------- |
-| Frontend         | React, TypeScript, Vite |
-| Backend          | FastAPI, Python 3.11    |
-| Containerization | Docker, Docker Compose  |
-| Web Server       | Nginx                   |
-| API Server       | Uvicorn                 |
-| CI/CD            | GitHub Actions          |
-| Cloud            | Google Cloud Run        |
+| Layer            | Technology                                     |
+| ---------------- | ---------------------------------------------- |
+| Frontend         | React, TypeScript, Vite                        |
+| Backend          | FastAPI, Python 3.11                           |
+| Containerization | Docker, Docker Compose, Podman, Podman Compose |
+| Web Server       | Nginx                                          |
+| API Server       | Uvicorn                                        |
+| CI/CD            | GitHub Actions                                 |
+| Cloud            | Google Cloud Run                               |
