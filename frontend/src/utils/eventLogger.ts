@@ -119,7 +119,7 @@ export function flush(): void {
 
   if (currentSessionId || eventsToFlush.length > 0) {
     const sessionId = currentSessionId ?? eventsToFlush[0]?.sessionId ?? "unknown";
-    fetch(`${VITE_API_BASE_URL}/v1/fraud/telemetry/events`, {
+    fetch(`http://localhost:8000/v1/fraud/telemetry/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, events: eventsToFlush }),
