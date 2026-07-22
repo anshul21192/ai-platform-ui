@@ -1,0 +1,21 @@
+# Database configuration
+DATABASE_URL=sqlite:///./data/behaviour.db
+BASE_URL=http://localhost:8000
+
+# SMTP configuration email sending
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+
+
+# use this for gemini api
+GEMINI_API_KEY=
+# use this for vertex ai
+
+
+(get the account key json and store at the root backend folder )
+$env:GOOGLE_APPLICATION_CREDENTIALS="c:\Users\shagun\Downloads\ai-platform-ui\backend\service-account-key.json"
+GOOGLE_CLOUD_PROJECT_ID=
+VERTEX_AI_LOCATION=
+OPENROUTER_API_KEY=

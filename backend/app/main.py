@@ -10,7 +10,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.include_router(behaviour.router, prefix="/api")
+
 app.include_router(verification.router, prefix="/api")
 app.include_router(incidents.router, prefix="/api")
 app.include_router(telemetry.router, prefix="/api")

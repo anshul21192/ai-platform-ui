@@ -2,22 +2,6 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-# ============ LEGACY BEHAVIOR ANALYSIS SCHEMAS ============
-class BehaviourPayload(BaseModel):
-    user_id: str
-    session_id: str
-    typing_speed_wpm: int
-    tab_switches: int
-    mouse_idle_time_sec: int
-    known_device: bool
-    ip_changed: bool
-
-class AnalysisResponse(BaseModel):
-    risk_score: int
-    risk_level: str
-    reason: str
-    action_taken: str
-
 class IncidentResponse(BaseModel):
     id: int
     user_id: str

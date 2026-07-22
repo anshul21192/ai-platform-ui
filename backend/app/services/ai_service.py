@@ -1,101 +1,74 @@
 import os
 import json
-from google.cloud import aiplatform
-from vertexai.preview.generative_models import GenerativeModel
+from openai import OpenAI
 from app.fraud_patterns import (
     SIGNAL_WEIGHTS, FRAUD_PATTERNS, RISK_BANDS, get_risk_band, 
     match_fraud_pattern, get_baseline
 )
-
-# OPTIONAL: Uncomment below to use direct Gemini API instead of Vertex AI
-# import google.generativeai as genai
-
 class AIService:
     def __init__(self):
-        # ============ VERTEX AI INTEGRATION (ACTIVE) ============
-        project_id = os.getenv("GOOGLE_CLOUD_PROJECT_ID")
-        location = os.getenv("VERTEX_AI_LOCATION", "us-central1")
-        
-        if project_id:
-            aiplatform.init(project=project_id, location=location)
-            # Utilizing the optimized Gemini model from Vertex AI for processing unstructured evaluation structures
-            self.model = GenerativeModel("gemini-1.5-flash")
-            self.model_type = "vertex_ai"
+        # Initialize OpenRouter client
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if api_key:
+            self.client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key,
+            )
+            # Choose any model available on OpenRouter
+            self.model_name = "openai/gpt-4o-mini"  # or "meta-llama/llama-3-70b-instruct"
         else:
-            self.model = None
-            self.model_type = None
-        
-        # ============ GEMINI API INTEGRATION (COMMENTED - OPTIONAL) ============
-        # Uncomment the following lines to use direct Gemini API instead of Vertex AI
-        # api_key = os.getenv("GEMINI_API_KEY")
-        # if api_key:
-        #     genai.configure(api_key=api_key)
-        #     self.model = genai.GenerativeModel("gemini-1.5-flash")
-        #     self.model_type = "gemini_api"
-        # else:
-        #     self.model = None
-        #     self.model_type = None
+            self.client = None
 
-    # ============ NEW: TELEMETRY EVENT ANALYSIS (Primary) ============
     def analyze_telemetry_events(self, telemetry_context: dict, anomalies: list, events: list = None) -> dict:
-        """
-        Analyze fraud risk using telemetry events from the UI.
-        
-        Args:
-            telemetry_context: Dict with event statistics
-            anomalies: List of detected anomalies
-            events: Raw event list (optional, for additional context)
-        
-        Returns:
-            {
-                "risk_score": int (0-100),
-                "risk_level": "LOW|MEDIUM|HIGH",
-                "reason": str,
-                "anomalies": list
-            }
-        """
-        if not self.model:
+        if not self.client:
             return self._fallback_telemetry_analysis(telemetry_context, anomalies)
         
-        # Build detailed analysis prompt with fraud patterns context
         fraud_patterns_context = "\n".join([
             f"- {p['typology']}: {p['name']} (score: {p['risk_score_if_matched']})"
             for p in FRAUD_PATTERNS
         ])
         
         signal_weights_context = "\n".join([
-            f"- {k}: {v} points" for k, v in list(SIGNAL_WEIGHTS.items())[:10]
+            f"- {k}: {v} points" for k, v in SIGNAL_WEIGHTS.items()
         ])
         
+        has_history = telemetry_context.get('has_established_history', False)
+        
+        # PROMPT UPDATED TO RESPECT ESTABLISHED HISTORY RULE
         prompt = f'''
-You are an advanced banking fraud detection AI system with expertise in behavioral fraud patterns.
-Analyze this user session for suspicious behavior using the patterns and signal weights below.
+You are an advanced banking fraud detection AI system with expertise in behavioral biometrics and event pattern analysis.
+Analyze this user session for suspicious behavior using the patterns, signal weights, and keystroke biometrics benchmarks below.
 
-KNOWN FRAUD PATTERNS (Typologies):
-{fraud_patterns_context}
+USER HISTORY STATUS:
+- Total Verified Past Sessions Logged in DB: {telemetry_context.get('past_sessions_recorded', 0)}
+- Has Established History: {has_history}
 
-KEY SIGNAL WEIGHTS (Evidence-Based):
-{signal_weights_context}
+HUMAN KEYSTROKE BIOMETRICS BENCHMARKS:
+- Typing Speed: Normal human range is 2.0 - 7.0 chars/sec. (>15 chars/sec indicates automated script injection / bot payload).
+- Dwell Time (key press duration): Normal human range is 60ms - 150ms. (<15ms indicates synthetic key injection).
+- Flight Time (inter-key pause): Normal human range is 80ms - 250ms. (<10ms indicates automated tool).
+- Backspace / Error Ratio: High ratio (>40% of total keys) combined with long pauses indicates hesitation, coercion, or social engineering APP scams.
 
-SESSION TELEMETRY CONTEXT:
+
+CURRENT LIVE SESSION TELEMETRY:
 - Total Events: {telemetry_context.get('event_count', 0)}
-- Session Duration: {telemetry_context.get('session_duration_ms', 0)}ms ({telemetry_context.get('session_duration_ms', 0) / 60000:.1f} minutes)
+- Session Duration: {telemetry_context.get('session_duration_ms', 0)}ms
 - New Device Login: {telemetry_context.get('has_new_device_login', False)}
 - New Location: {telemetry_context.get('has_new_location', False)}
-- Large Transfer (>$10k): {telemetry_context.get('has_large_transfer', False)}
-- Settings Changes Count: {telemetry_context.get('settings_changes', 0)}
+- Current Transfer Amount: ${telemetry_context.get('current_transfer_amount', 0)}
 - Sensitive Action Count: {telemetry_context.get('sensitive_action_count', 0)}
 - Detected Anomalies: {', '.join(anomalies) if anomalies else 'None'}
+- Keystroke Dynamics Summary: {json.dumps(telemetry_context.get('keystroke_summary', {})) if telemetry_context.get('keystroke_summary') else 'None'}
 
-FRAUD DETECTION SCORING GUIDELINES:
-- NEW DEVICE + TRANSFER → Risk starts at 70+
-- NEW LOCATION + LARGE TRANSFER → Risk 70+
-- MULTIPLE SETTINGS CHANGES (3+) → Risk 60+
-- BULK OPERATIONS (>10x baseline) → Risk 70+
-- RAPID SENSITIVE ACTIONS → Risk 60+
-- DIRECT ROUTE ACCESS (no predecessor) → Risk 65+
-- Each anomaly detected → +15 points
-- Rare action with safe context → Risk 30-50 (evaluate carefully)
+EVALUATION PROTOCOL:
+1. **Historical Limit Check**: 
+   - If `Has Established History` is **True**, you **MUST NOT** evaluate or penalize the current transfer amount against any historical maximum limit. Treat the transfer amount purely on its standalone context.
+   - If `Has Established History` is **False** (brand-new user), evaluate transfer amounts strictly against standard cold-start baselines.
+2. **Proportional Scoring**: Avoid binary 0 or 100 extremes unless a major multi-step attack pattern (like an ATO chain or guardrail removal) is explicitly detected in the anomalies. A new device login with a standard transfer for an established user should yield a balanced LOW or MEDIUM risk score.
+
+ KEYSTROKE BOT SPEED / SCRIPT INJECTION → Risk 80+
+- KEYSTROKE UNREALISTIC FLIGHT TIME → Risk 75+
+- KEYSTROKE EXCESSIVE HESITATION / COERCION → Risk 60+
 
 RISK BANDS:
 - LOW (0-39): Allow, normal activity
@@ -107,18 +80,29 @@ Respond in STRICT JSON format:
     "risk_score": <integer 0-100>,
     "risk_level": "<LOW|MEDIUM|HIGH>",
     "matched_patterns": ["pattern names if any"],
-    "reason": "<detailed 2-3 sentence explanation citing specific signals>"
+    "reason": "<detailed 2-3 sentence explanation acknowledging the user's history status and evaluating anomalies proportionally>"
 }}
 '''
         try:
-            response = self.model.generate_content(prompt, generation_config={"temperature": 0.2})
-            clean_json = response.text.strip().replace("```json", "").replace("```", "").strip()
-            result = json.loads(clean_json)
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": "You are a precise fraud detection assistant that outputs only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"}
+            )
+            
+            raw_content = response.choices[0].message.content.strip()
+            result = json.loads(raw_content)
+            
             return {
                 "risk_score": result.get("risk_score", 50),
                 "risk_level": result.get("risk_level", "MEDIUM"),
                 "reason": result.get("reason", "Telemetry analysis complete"),
-                "anomalies": result.get("anomalies", anomalies)
+                "anomalies": anomalies,
+                "matched_patterns": result.get("matched_patterns", [])
             }
         except Exception as e:
             return self._fallback_telemetry_analysis(telemetry_context, anomalies, error=str(e))
@@ -167,6 +151,15 @@ Respond in STRICT JSON format:
             elif "UNAUTHORIZED_SETTING" in anomaly:
                 risk_score += SIGNAL_WEIGHTS["toggle_alerts_off_before_transfer"]
                 matched_patterns.append("Guardrail Removal")
+            elif "KEYSTROKE_BOT_SPEED" in anomaly:
+                risk_score += SIGNAL_WEIGHTS.get("keystroke_bot_speed", 25)
+                matched_patterns.append("Scripted / Bot Keystroke Speed")
+            elif "KEYSTROKE_UNREALISTIC_FLIGHT_TIME" in anomaly:
+                risk_score += SIGNAL_WEIGHTS.get("keystroke_unrealistic_flight_time", 20)
+                matched_patterns.append("Unrealistic Keystroke Flight Time")
+            elif "KEYSTROKE_EXCESSIVE_HESITATION" in anomaly:
+                risk_score += SIGNAL_WEIGHTS.get("keystroke_excessive_hesitation", 15)
+                matched_patterns.append("Coerced / Erratic Keystroke Behavior")
             else:
                 risk_score += SIGNAL_WEIGHTS["abnormal_dwell_sensitive_screen"]
         
@@ -195,78 +188,4 @@ Respond in STRICT JSON format:
             "matched_patterns": matched_patterns
         }
 
-    # ============ LEGACY: BEHAVIOR PATTERN ANALYSIS (COMMENTED OUT - Deprecated) ============
-    # def analyze_pattern(self, payload: dict, baseline: dict = None) -> dict:
-    #     """
-    #     DEPRECATED - Old method for analyzing typing speed, tab switches, and mouse idle time.
-    #     No longer used. Use analyze_telemetry_events() instead for event-based fraud detection.
-    #     
-    #     This method is kept commented for reference only.
-    #     Kept for backward compatibility but not recommended.
-    #     """
-    #     if not self.model:
-    #         return self._fallback_rule_engine(payload)
-    #         
-    #     # 1. Build historical context if a baseline exists
-    #     baseline_str = "No historical baseline available for this user (First-time session)."
-    #     if baseline:
-    #         baseline_str = f"""
-    #         ESTABLISHED HISTORICAL BASELINE (Normal Patterns):
-    #         - Avg Typing Speed: {baseline['avg_typing_speed']} WPM
-    #         - Avg Tab Switches: {baseline['avg_tab_switches']} per session
-    #         - Avg Mouse Idle Time: {baseline['avg_mouse_idle']} seconds
-    #         - Total Verified Safe Sessions Analyzed: {baseline['total_sessions']}
-    #         """
-    #         
-    #     # 2. Re-engineer prompt to focus on statistical variance
-    #     prompt = f'''
-    #     You are an advanced banking behavioral biometrics system. 
-    #     Analyze the variance between this user's established historical baseline profile and their current live session telemetry to detect anomalies or session hijacking.
-
-    #     {baseline_str}
-
-    #     CURRENT LIVE SESSION TELEMETRY (To evaluate):
-    #     - Typing Speed: {payload['typing_speed_wpm']} WPM
-    #     - Tab Switches: {payload['tab_switches']}
-    #     - Mouse Idle Time: {payload['mouse_idle_time_sec']} seconds
-    #     - Known Device: {payload['known_device']}
-    #     - IP Changed: {payload['ip_changed']}
-
-    #     EVALUATION PROTOCOL:
-    #     - If a baseline exists, minor fluctuations are expected. Flag massive spikes or changes (e.g., typing speed jumping 4x, or tab switches spiking heavily compared to their baseline).
-    #     - If no baseline exists, evaluate the parameters strictly against standard human usage benchmarks.
-
-    #     Respond strictly in JSON format with exactly these keys:
-    #     - "risk_score": an integer from 0 to 100
-    #     - "risk_level": "LOW", "MEDIUM", or "HIGH"
-    #     - "reason": a short explanation sentence highlighting the exact baseline variance.
-    #     '''
-    #     try:
-    #         # Enforce predictable variance outputs
-    #         response = self.model.generate_content(prompt, generation_config={"temperature": 0.2})
-    #         clean_json = response.text.strip().replace("```json", "").replace("```", "")
-    #         return json.loads(clean_json)
-    #     except Exception as e:
-    #         return {"risk_score": 50, "risk_level": "MEDIUM", "reason": f"AI Parsing Fallback: {str(e)}"}
-
-    # def _fallback_rule_engine(self, payload: dict) -> dict:
-    #     """
-    #     DEPRECATED - Standard safety rule engine fallback for old typing speed schema.
-    #     Use fallback telemetry analysis instead.
-    #     """
-    #     typing_speed = payload.get("typing_speed_wpm", 0)
-    #     if typing_speed > 300:
-    #         return {
-    #             "risk_score": 90,
-    #             "risk_level": "HIGH",
-    #             "reason": "Rule Engine Fallback: Typing speed exceeds realistic physical capacities."
-    #         }
-    #     return {
-    #         "risk_score": 15,
-    #         "risk_level": "LOW",
-    #         "reason": "Rule Engine Fallback: Standard operating metrics recorded."
-    #     }
-
-# 🚨 THIS LINE IS WHAT RESOLVES THE IMPORT ERROR:
-# It instantiates the class so the router can import the shared 'ai_service' object.
 ai_service = AIService()

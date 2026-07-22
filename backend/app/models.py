@@ -2,28 +2,6 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON
 from datetime import datetime
 from app.database import Base
 
-class UserBehaviour(Base):
-    __tablename__ = "user_behaviours"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
-    session_id = Column(String, unique=True, index=True)
-    typing_speed_wpm = Column(Integer)
-    tab_switches = Column(Integer)
-    mouse_idle_time_sec = Column(Integer)
-    known_device = Column(Boolean)
-    ip_changed = Column(Boolean)
-    risk_score = Column(Integer)
-    risk_level = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-class KnownPattern(Base):
-    __tablename__ = "known_patterns"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
-    typing_speed_wpm = Column(Integer)
-    tab_switches = Column(Integer)
-    verified = Column(Boolean, default=True)
-    updated_at = Column(DateTime, default=datetime.utcnow)
 
 class Incident(Base):
     __tablename__ = "incidents"
