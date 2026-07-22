@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
 import { authenticate, createSessionId, type AuthUser } from "../utils/auth";
 import { setSession, clearSession, trackEvent, flush, clearEvents } from "../utils/eventLogger";
+import { sendKeystrokeMetrics } from "../api/keystrokeAnalysis";
 
 const SESSION_KEY = "vault_bank_session";
 const MAX_FAILED_ATTEMPTS = 3;
@@ -19,7 +20,7 @@ interface AuthContextValue {
   sessionId: string | null;
   isAuthenticated: boolean;
   loginError: string | null;
-  login: (username: string, password: string, newDevice: boolean, newLocation: boolean) => boolean;
+  login: (username: string, password: string, newDevice: boolean, newLocation: boolean, keystrokeMetrics?: object) => boolean;
   logout: () => void;
   clearLoginError: () => void;
 }
@@ -49,37 +50,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loginError, setLoginError] = useState<string | null>(null);
   const failedAttempts = useRef(0);
 
-  const login = useCallback((username: string, password: string, newDevice: boolean, newLocation: boolean): boolean => {
-    const user = authenticate(username, password);
-    if (!user) {
-      failedAttempts.current++;
-      if (failedAttempts.current > MAX_FAILED_ATTEMPTS) {
-        trackEvent("LOGIN_LOCKOUT", { username, failedAttempts: failedAttempts.current });
-        flush();
-        setLoginError("Account temporarily locked. Too many failed attempts.");
-      } else {
-        setLoginError("Invalid username or password");
+  const login = useCallback(
+    (
+      username: string,
+      password: string,
+      newDevice: boolean,
+      newLocation: boolean,
+      keystrokeMetrics?: object
+    ): boolean => {
+      const user = authenticate(username, password);
+      if (!user) {
+        if (keystrokeMetrics) {
+          sendKeystrokeMetrics(keystrokeMetrics);
+        }
+        failedAttempts.current++;
+        if (failedAttempts.current > MAX_FAILED_ATTEMPTS) {
+          trackEvent("LOGIN_LOCKOUT", { username, failedAttempts: failedAttempts.current });
+          flush();
+          setLoginError("Account temporarily locked. Too many failed attempts.");
+        } else {
+          setLoginError("Invalid username or password");
+        }
+        return false;
       }
-      return false;
-    }
 
-    const sessionId = createSessionId();
-    const data: SessionData = { user, sessionId, newDevice, newLocation };
+      const sessionId = createSessionId();
+      const data: SessionData = { user, sessionId, newDevice, newLocation };
 
-    saveSession(data);
-    setSessionState(data);
-    setLoginError(null);
-    failedAttempts.current = 0;
+      saveSession(data);
+      setSessionState(data);
+      setLoginError(null);
+      failedAttempts.current = 0;
 
-    setSession(user.userId, sessionId);
-    trackEvent("LOGIN", { newDevice, newLocation, username });
+      setSession(user.userId, sessionId);
+      trackEvent("LOGIN", { newDevice, newLocation, username });
 
-    if (newDevice || newLocation) {
-      flush();
-    }
+      if (keystrokeMetrics) {
+        sendKeystrokeMetrics(keystrokeMetrics);
+      }
 
-    return true;
-  }, []);
+      if (newDevice || newLocation) {
+        flush();
+      }
+
+      return true;
+    },
+    []
+  );
 
   const logout = useCallback(() => {
     trackEvent("LOGOUT");
