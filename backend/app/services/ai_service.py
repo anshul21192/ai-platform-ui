@@ -80,7 +80,9 @@ Respond in STRICT JSON format:
     "risk_score": <integer 0-100>,
     "risk_level": "<LOW|MEDIUM|HIGH>",
     "matched_patterns": ["pattern names if any"],
-    "reason": "<detailed 2-3 sentence explanation acknowledging the user's history status and evaluating anomalies proportionally>"
+    "reason": "<detailed 2-3 sentence explanation acknowledging the user's history status and evaluating anomalies proportionally>",
+    "executive_summary": "<business-friendly executive summary with headings and bullet reasons>",
+    "dora_report": "<structured DORA incident report with Operational Incident, Severity, Root Cause, Timeline, Controls Triggered, Evidence, Recommended Controls, DORA Report>"
 }}
 '''
         try:
@@ -97,12 +99,32 @@ Respond in STRICT JSON format:
             raw_content = response.choices[0].message.content.strip()
             result = json.loads(raw_content)
             
+            executive_summary = result.get("executive_summary")
+            if not executive_summary:
+                executive_summary = self._build_executive_summary(
+                    result.get("risk_level", "MEDIUM"),
+                    result.get("reason", "Telemetry analysis complete"),
+                    anomalies,
+                    telemetry_context
+                )
+
+            dora_report = result.get("dora_report")
+            if not dora_report:
+                dora_report = self._build_dora_report(
+                    result.get("risk_level", "MEDIUM"),
+                    result.get("reason", "Telemetry analysis complete"),
+                    anomalies,
+                    telemetry_context
+                )
+            
             return {
                 "risk_score": result.get("risk_score", 50),
                 "risk_level": result.get("risk_level", "MEDIUM"),
                 "reason": result.get("reason", "Telemetry analysis complete"),
                 "anomalies": anomalies,
-                "matched_patterns": result.get("matched_patterns", [])
+                "matched_patterns": result.get("matched_patterns", []),
+                "executive_summary": executive_summary,
+                "dora_report": dora_report
             }
         except Exception as e:
             return self._fallback_telemetry_analysis(telemetry_context, anomalies, error=str(e))
@@ -180,12 +202,174 @@ Respond in STRICT JSON format:
         if error:
             reason += f" (AI fallback: {error[:30]})"
         
+        executive_summary = self._build_executive_summary(risk_level, reason, anomalies, telemetry_context)
         return {
             "risk_score": risk_score,
             "risk_level": risk_level,
             "reason": reason,
             "anomalies": anomalies,
-            "matched_patterns": matched_patterns
+            "matched_patterns": matched_patterns,
+            "executive_summary": executive_summary
         }
+
+    def _build_executive_summary(self, risk_level: str, reason: str, anomalies: list, telemetry_context: dict) -> str:
+        """Build a business-friendly executive summary for the fraud decision."""
+        if risk_level == "HIGH":
+            summary_header = "Executive Summary\n\nThis session resembles Account Takeover or high-risk fraud behavior."
+        elif risk_level == "MEDIUM":
+            summary_header = "Executive Summary\n\nThis session shows suspicious behavior that warrants step-up review."
+        else:
+            summary_header = "Executive Summary\n\nThis session appears normal with no major fraud patterns detected."
+
+        reason_lines = []
+        if telemetry_context.get("has_new_device_login"):
+            reason_lines.append("New device login detected")
+        if telemetry_context.get("has_new_location"):
+            reason_lines.append("Login from an unfamiliar location")
+        if telemetry_context.get("has_large_transfer"):
+            reason_lines.append("Large transfer amount compared to baseline")
+        if telemetry_context.get("sensitive_action_count", 0) > 0:
+            reason_lines.append(f"{telemetry_context.get('sensitive_action_count')} sensitive action(s) performed")
+        if telemetry_context.get("keystroke_summary"):
+            ks = telemetry_context["keystroke_summary"]
+            if ks.get("typingSpeed"):
+                reason_lines.append(f"Typing cadence deviated by {ks['typingSpeed']} WPM or equivalent")
+            if ks.get("averageFlightTime") and ks["averageFlightTime"] < 15:
+                reason_lines.append("Mouse/typing movements were robotic or scripted")
+            if ks.get("pauseCount") and ks["pauseCount"] >= 4:
+                reason_lines.append("Excessive hesitation or editing behavior detected")
+
+        anomaly_map = {
+            "BULK_OPERATION_DETECTED": "Bulk operation spike detected",
+            "RAPID_SENSITIVE_ACTION_SEQUENCE": "Multiple sensitive actions executed rapidly",
+            "DIRECT_ROUTE_ACCESS": "Direct route access to sensitive function",
+            "UNAUTHORIZED_SETTING_CHANGE": "Guardrails disabled before payment",
+            "PAYEE_MANIPULATION_PATTERN": "Payee edited or added immediately before transfer",
+            "RAPID_MULTIPLE_PAYEES": "Multiple new payees added rapidly",
+            "GUARDRAIL_REMOVAL_BEFORE_TRANSFER": "Alerts toggled off before transfer",
+            "BREADTH_RECONNAISSANCE": "Broad reconnaissance of sensitive pages",
+            "KEYSTROKE_BOT_SPEED": "Typing speed indicates scripted input",
+            "KEYSTROKE_UNREALISTIC_FLIGHT_TIME": "Keystroke timing appears automated",
+            "KEYSTROKE_EXCESSIVE_HESITATION": "Erratic keystroke behavior suggests coercion or fraud"
+        }
+        for anomaly in anomalies:
+            label = anomaly_map.get(anomaly, anomaly.replace("_", " ").title())
+            if label not in reason_lines:
+                reason_lines.append(label)
+
+        if not reason_lines:
+            reason_lines = ["No strong fraud signals detected in the session."]
+
+        action_lines = []
+        if risk_level == "HIGH":
+            action_lines = [
+                "Hold transaction",
+                "Notify customer",
+                "Escalate to Fraud Team"
+            ]
+        elif risk_level == "MEDIUM":
+            action_lines = [
+                "Require additional verification",
+                "Monitor the session closely"
+            ]
+        else:
+            action_lines = [
+                "Allow transaction",
+                "Continue monitoring"
+            ]
+
+        summary = [summary_header, "\nReasons"]
+        for line in reason_lines:
+            summary.append(f"• {line}")
+        summary.append("\nRecommended Action")
+        for line in action_lines:
+            summary.append(f"✔ {line}")
+        summary.append(f"\nDetails: {reason}")
+
+        return "\n".join(summary)
+
+    def _build_dora_report(self, risk_level: str, reason: str, anomalies: list, telemetry_context: dict) -> str:
+        """Build a DORA-style incident report."""
+        incident_title = "Operational Incident"
+        severity = risk_level
+        root_cause = "Unusual fraud behavior detected by telemetry and behavioral anomaly scoring."
+        if risk_level == "HIGH":
+            root_cause = "Probable account takeover with scripted behavior and guardrail bypass."
+        elif risk_level == "MEDIUM":
+            root_cause = "Suspicious transaction behavior with elevated risk signals."
+
+        timeline = (
+            f"Session events: {telemetry_context.get('event_count', 0)}. "
+            f"Duration: {telemetry_context.get('session_duration_ms', 0)} ms. "
+            f"Sensitive actions: {telemetry_context.get('sensitive_action_count', 0)}."
+        )
+
+        controls = []
+        if telemetry_context.get('has_new_device_login'):
+            controls.append("New device login detected")
+        if telemetry_context.get('has_new_location'):
+            controls.append("Unfamiliar location detected")
+        if telemetry_context.get('has_large_transfer'):
+            controls.append("Large transfer threshold monitoring")
+        for anomaly in anomalies:
+            controls.append(anomaly.replace("_", " ").title())
+
+        evidence_lines = []
+        if telemetry_context.get('keystroke_summary'):
+            ks = telemetry_context['keystroke_summary']
+            if ks.get('typingSpeed'):
+                evidence_lines.append(f"Typing speed: {ks['typingSpeed']} WPM")
+            if ks.get('averageFlightTime'):
+                evidence_lines.append(f"Flight time: {ks['averageFlightTime']} ms")
+            if ks.get('pauseCount') is not None:
+                evidence_lines.append(f"Pause count: {ks['pauseCount']}")
+        if anomalies:
+            evidence_lines.append(f"Anomaly signals: {', '.join(anomalies)}")
+        if telemetry_context.get('has_new_device_login') or telemetry_context.get('has_new_location'):
+            evidence_lines.append("Login context: new device/location")
+
+        if not controls:
+            controls.append("Standard session monitoring")
+        if not evidence_lines:
+            evidence_lines.append("Telemetry evidence collected from session events.")
+
+        recommended_controls = []
+        if risk_level == "HIGH":
+            recommended_controls = [
+                "Hold transaction",
+                "Notify customer",
+                "Escalate to fraud team",
+                "Initiate formal incident report"
+            ]
+        elif risk_level == "MEDIUM":
+            recommended_controls = [
+                "Require additional verification",
+                "Monitor activity closely",
+                "Review transaction before settlement"
+            ]
+        else:
+            recommended_controls = [
+                "Allow transaction",
+                "Continue standard monitoring"
+            ]
+
+        dora_report = [
+            "Operational Incident",
+            f"Severity: {severity}",
+            f"Root Cause: {root_cause}",
+            f"Timeline: {timeline}",
+            "Controls Triggered:",
+        ]
+        for control in controls:
+            dora_report.append(f"- {control}")
+        dora_report.append("Evidence:")
+        for evidence in evidence_lines:
+            dora_report.append(f"- {evidence}")
+        dora_report.append("Recommended Controls:")
+        for control in recommended_controls:
+            dora_report.append(f"- {control}")
+        dora_report.append("DORA Report: This incident summary is generated to support operational resilience and regulatory reporting.")
+
+        return "\n".join(dora_report)
 
 ai_service = AIService()

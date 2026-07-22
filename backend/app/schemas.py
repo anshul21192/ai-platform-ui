@@ -33,12 +33,23 @@ class TelemetryFlushRequest(BaseModel):
     sessionId: str
     events: List[TelemetryEvent]
 
+class RiskAssessment(BaseModel):
+    """Structured fraud risk assessment with business summary."""
+    risk_score: int
+    risk_level: str
+    matched_patterns: List[str] = []
+    reason: str
+    recommendation: str
+    action_taken: str
+    executive_summary: Optional[str] = None
+    dora_report: Optional[str] = None
+
 class TelemetryEventResponse(BaseModel):
     """Response after ingesting telemetry"""
     status: str
     message: str
     eventsProcessed: int
-    riskAssessment: Optional[Dict[str, Any]] = None
+    riskAssessment: Optional[RiskAssessment] = None
 
 class EventFraudAnalysis(BaseModel):
     """Fraud analysis result from telemetry event batch"""
@@ -49,3 +60,5 @@ class EventFraudAnalysis(BaseModel):
     anomalies_detected: List[str]
     recommendation: str
     action_taken: str
+    executive_summary: Optional[str] = None
+    dora_report: Optional[str] = None

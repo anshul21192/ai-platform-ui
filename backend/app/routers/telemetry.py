@@ -85,7 +85,8 @@ async def ingest_telemetry_events(
         risk_level=risk_analysis.get("risk_level", "LOW"),
         anomalies=anomalies,
         recommendation=risk_analysis.get("recommendation", "No action needed"),
-        action_taken=risk_analysis.get("action_taken", "Logged entry.")
+        action_taken=risk_analysis.get("action_taken", "Logged entry."),
+        dora_report=risk_analysis.get("dora_report")
     )
     db.merge(session_telemetry)
     db.commit()
@@ -369,7 +370,9 @@ def analyze_fraud_risk(
         "anomalies": anomalies,
         "recommendation": recommendation,
         "action_taken": action_taken,
-        "reason": reason
+        "reason": reason,
+        "executive_summary": analysis.get("executive_summary"),
+        "dora_report": analysis.get("dora_report")
     }
 
 

@@ -2,6 +2,8 @@
 
 ## Overview
 
+Our platform not only detects fraud in real time using behavioural biometrics and AI, but also acts as an AI Fraud Investigation Copilot. It automatically reconstructs the incident timeline, identifies root causes, recommends remediation actions, and generates DORA-ready operational incident reports. This reduces fraud investigation and compliance reporting effort from nearly an hour to just a few minutes while providing consistent, explainable, and audit-ready documentation
+
 The AI Platform UI is a full-stack application consisting of:
 
 - **Frontend** – React + TypeScript + Vite
@@ -85,6 +87,7 @@ ai-platform-ui/
 - Telemetry Visualization
 - Verification Workflows
 - API Integration
+- Executive Dashboard for business stakeholders, showing fraud impact metrics, risk posture, and operational resilience indicators
 
 **Docker**
 
@@ -116,6 +119,31 @@ frontend/Dockerfile
 - Incident APIs
 - AI service integration
 - External API communication
+
+**Business impact**
+
+- Translates raw fraud signals into business-ready summaries for risk and operations teams
+- Enables faster prioritization of high-risk sessions by clearly identifying why a session is suspicious
+- Helps fraud analysts and customer support act quickly with recommended actions
+- Improves executive visibility by surfacing “why” and “what next” instead of just a numeric risk score
+- Makes the platform more compelling for demos to risk, compliance, and fraud management stakeholders
+- Generates DORA-style resilience and incident reporting summaries so security, risk, and compliance teams can measure detection, response, and recovery readiness from fraud telemetry
+
+**Sample Executive Summary**
+Executive Summary
+
+This session resembles Account Takeover or high-risk fraud behavior.
+
+Reasons
+• Typing cadence deviated by 68%
+• Mouse/typing movements were robotic or scripted
+• Guardrails disabled before transfer
+• Payee edited or added immediately before transfer
+
+Recommended Action
+✔ Hold transaction
+✔ Notify customer
+✔ Escalate to Fraud Team
 
 Container Port:
 

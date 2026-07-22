@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { BeneficiaryProvider } from "./contexts/BeneficiaryContext";
 import { logNavigation } from "./utils/eventLogger";
 import RiskDashboardPage from "./pages/RiskDashboardPage";
+import ExecutiveDashboardPage from "./pages/ExecutiveDashboardPage";
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ export default function App() {
         <AuthProvider>
           <NavigationTracker />
           <Routes>
+        <Route path="/executive-dashboard" element={<ExecutiveDashboardPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="*" element={
               <ProtectedRoute>
