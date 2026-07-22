@@ -40,7 +40,9 @@ export class KeystrokeCollector {
     const key = event.key;
     const now = performance.now();
 
-    if (event.isComposing || key === "Unidentified") {
+    const isComposing =
+      ('nativeEvent' in event ? event.nativeEvent.isComposing : event.isComposing) || false;
+    if (isComposing || key === "Unidentified") {
       this.inputMethod = "virtual-keyboard";
     }
 
