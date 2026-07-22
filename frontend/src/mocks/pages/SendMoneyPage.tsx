@@ -1,5 +1,5 @@
 import SendIcon from "@mui/icons-material/Send";
-import PaymentForm, { type PaymentFormConfig } from "../components/PaymentForm";
+import PaymentForm, { type PaymentFormConfig } from "../../components/PaymentForm";
 
 const config: PaymentFormConfig = {
   title: "Send Money",

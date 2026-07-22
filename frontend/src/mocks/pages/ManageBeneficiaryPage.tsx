@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, TextField, Button, Autocomplete, Card, CardContent } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useBeneficiary } from "../contexts/BeneficiaryContext";
-import { trackEvent } from "../utils/eventLogger";
+import { useBeneficiary } from "../../contexts/BeneficiaryContext";
+import { trackEvent } from "../../utils/eventLogger";
 
 const banks = [
   "State Bank of India",

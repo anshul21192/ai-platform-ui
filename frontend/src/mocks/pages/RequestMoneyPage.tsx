@@ -1,5 +1,5 @@
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
-import PaymentForm, { type PaymentFormConfig } from "../components/PaymentForm";
+import PaymentForm, { type PaymentFormConfig } from "../../components/PaymentForm";
 
 const config: PaymentFormConfig = {
   title: "Request Money",

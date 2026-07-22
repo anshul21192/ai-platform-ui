@@ -28,8 +28,8 @@ import {
   trackEvent,
   getSessionId,
   getUserId,
-} from "../utils/eventLogger";
-import type { AppEvent } from "../utils/eventLogger";
+} from "../../utils/eventLogger";
+import type { AppEvent } from "../../utils/eventLogger";
 
 export default function AuditLogsPage() {
   const theme = useTheme();

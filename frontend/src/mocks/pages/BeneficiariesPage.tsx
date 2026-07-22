@@ -21,9 +21,9 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import BeneficiaryCard from "../components/BeneficiaryCard";
-import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
-import { trackEvent } from "../utils/eventLogger";
+import BeneficiaryCard from "../../components/BeneficiaryCard";
+import { useBeneficiary, type Beneficiary } from "../../contexts/BeneficiaryContext";
+import { trackEvent } from "../../utils/eventLogger";
 
 export default function BeneficiariesPage() {
   const navigate = useNavigate();

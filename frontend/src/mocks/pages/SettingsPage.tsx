@@ -6,7 +6,7 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import TuneIcon from "@mui/icons-material/Tune";
-import { trackEvent } from "../utils/eventLogger";
+import { trackEvent } from "../../utils/eventLogger";
 
 const languages = ["English", "Spanish", "French", "German", "Hindi"];
 const currencies = ["USD - US Dollar", "EUR - Euro", "GBP - British Pound", "INR - Indian Rupee", "JPY - Japanese Yen"];

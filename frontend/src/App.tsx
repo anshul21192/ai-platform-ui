@@ -2,22 +2,24 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { FpjsProvider } from "@fingerprintjs/fingerprintjs-pro-react";
 import theme from "./theme/theme";
-import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import BeneficiariesPage from "./pages/BeneficiariesPage";
-import ManageBeneficiaryPage from "./pages/ManageBeneficiaryPage";
-import SettingsPage from "./pages/SettingsPage";
-import TransactionsPage from "./pages/TransactionsPage";
-import SendMoneyPage from "./pages/SendMoneyPage";
-import RequestMoneyPage from "./pages/RequestMoneyPage";
-import AuditLogsPage from "./pages/AuditLogsPage";
+import LoginPage from "./mocks/pages/LoginPage";
+import DashboardPage from "./mocks/pages/DashboardPage";
+import BeneficiariesPage from "./mocks/pages/BeneficiariesPage";
+import ManageBeneficiaryPage from "./mocks/pages/ManageBeneficiaryPage";
+import SettingsPage from "./mocks/pages/SettingsPage";
+import TransactionsPage from "./mocks/pages/TransactionsPage";
+import SendMoneyPage from "./mocks/pages/SendMoneyPage";
+import RequestMoneyPage from "./mocks/pages/RequestMoneyPage";
+import AuditLogsPage from "./mocks/pages/AuditLogsPage";
 import PageLayout from "./components/PageLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { BeneficiaryProvider } from "./contexts/BeneficiaryContext";
 import { logNavigation } from "./utils/eventLogger";
-import RiskDashboardPage from "./pages/RiskDashboardPage";
+import RiskDashboardPage from "./mocks/pages/RiskDashboardPage";
 
+const fingerprintApiKey = "bYcOv9gpXAX0S0wYP7eq" as string | undefined;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -40,7 +42,7 @@ function NavigationTracker() {
 }
 
 export default function App() {
-  return (
+  const appContent = (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
@@ -70,5 +72,16 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+  );
+
+   return (
+    <FpjsProvider
+      loadOptions={{
+        apiKey: fingerprintApiKey ?? "demo-public-key",
+        region: "ap",
+      }}
+    >
+      {appContent}
+    </FpjsProvider>
   );
 }

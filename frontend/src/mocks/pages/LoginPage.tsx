@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,57 +13,177 @@ import {
   Switch,
   Divider,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 import PersonIcon from '@mui/icons-material/Person';
 import Add from '@mui/icons-material/Add';
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
-import { useAuth } from "../contexts/AuthContext";
-import { useKeystrokeDynamics } from "../hooks/useKeystrokeDynamics";
+import { useAuth } from "../../contexts/AuthContext";
+
+interface KeystrokeMetrics {
+  keystrokeDwellTimes: number[];
+  keystrokeFlightTimes: number[];
+  totalKeystrokes: number;
+  sessionDuration: number;
+  averageDwellTime?: number;
+  averageFlightTime?: number;
+}
 
 export default function LoginPage() {
   const { login, loginError, clearLoginError } = useAuth();
   const navigate = useNavigate();
+  const { getData } = useVisitorData();
+  
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [newDevice, setNewDevice] = useState(false);
   const [newLocation, setNewLocation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fingerprintStatus, setFingerprintStatus] = useState<string | null>(null);
+  
+  // Check if fingerprint is enabled via env variable
+  const fingerprintEnabled = "bYcOv9gpXAX0S0wYP7eq";
+  
+  // Keystroke tracking
+  const [keystrokeMetrics, setKeystrokeMetrics] = useState<KeystrokeMetrics>({
+    keystrokeDwellTimes: [],
+    keystrokeFlightTimes: [],
+    totalKeystrokes: 0,
+    sessionDuration: 0,
+  });
+  
+  const lastKeyTime = useRef<number>(0);
+  const sessionStartTime = useRef<number>(Date.now());
+  const keyPressTimestamps = useRef<number[]>([]);
 
-  const {
-    getMetrics,
-    handleKeyDown,
-    handleKeyUp,
-    resetMetrics,
-  } = useKeystrokeDynamics();
+
+  // Track keystroke dynamics
+  const handleKeyDown = () => {
+    const currentTime = Date.now();
+    const lastTime = lastKeyTime.current;
+
+    if (lastTime !== 0) {
+      // Flight time: time between key releases
+      const flightTime = currentTime - lastTime;
+      setKeystrokeMetrics((prev) => ({
+        ...prev,
+        keystrokeFlightTimes: [...prev.keystrokeFlightTimes, flightTime],
+      }));
+    }
+
+    keyPressTimestamps.current.push(currentTime);
+    lastKeyTime.current = currentTime;
+  };
+
+  const handleKeyUp = () => {
+    const currentTime = Date.now();
+    
+    if (keyPressTimestamps.current.length > 0) {
+      const pressTime = keyPressTimestamps.current[keyPressTimestamps.current.length - 1];
+      // Dwell time: how long key was pressed
+      const dwellTime = currentTime - pressTime;
+      
+      setKeystrokeMetrics((prev) => ({
+        ...prev,
+        keystrokeDwellTimes: [...prev.keystrokeDwellTimes, dwellTime],
+        totalKeystrokes: prev.totalKeystrokes + 1,
+      }));
+    }
+
+    lastKeyTime.current = currentTime;
+  };
+
+  const resetMetrics = () => {
+    setKeystrokeMetrics({
+      keystrokeDwellTimes: [],
+      keystrokeFlightTimes: [],
+      totalKeystrokes: 0,
+      sessionDuration: 0,
+    });
+    keyPressTimestamps.current = [];
+    lastKeyTime.current = 0;
+    sessionStartTime.current = Date.now();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearLoginError();
+    setIsSubmitting(true);
+    setFingerprintStatus(fingerprintEnabled ? "Capturing browser fingerprint..." : "Fingerprinting is disabled. Set VITE_FINGERPRINT_PUBLIC_KEY to enable it.");
 
-    const currentMetrics = getMetrics();
-    console.log("Metrics before sending:", currentMetrics);
+    let fingerprintData: Record<string, unknown> | null = null;
+    
+    if (fingerprintEnabled) {
+      try {
+        const fingerprintResult = await getData({
+          tag: { source: "vault-bank-login" },
+          linkedId: username.trim() || "guest",
+        });
 
-    try {
-      const success = login(
-        username,
-        password,
-        newDevice,
-        newLocation,
-        currentMetrics
-      );
+        const visitorData = (fingerprintResult as { data?: { visitorId?: string; confidence?: { score?: number }; ip?: string } } | undefined)?.data ?? (fingerprintResult as { visitorId?: string; confidence?: { score?: number }; ip?: string } | undefined);
 
-      resetMetrics();
+        fingerprintData = {
+          visitorId: visitorData?.visitorId ?? null,
+          confidence: visitorData?.confidence?.score ?? null,
+          ipAddress: visitorData?.ip ?? null,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          requestId: (fingerprintResult as { requestId?: string }).requestId ?? null,
+          userName: username.trim() || "guest",
+          keystrokeMetrics: {
+            totalKeystrokes: keystrokeMetrics.totalKeystrokes,
+            averageDwellTime: keystrokeMetrics.keystrokeDwellTimes.length > 0 
+              ? keystrokeMetrics.keystrokeDwellTimes.reduce((a, b) => a + b, 0) / keystrokeMetrics.keystrokeDwellTimes.length 
+              : 0,
+            averageFlightTime: keystrokeMetrics.keystrokeFlightTimes.length > 0 
+              ? keystrokeMetrics.keystrokeFlightTimes.reduce((a, b) => a + b, 0) / keystrokeMetrics.keystrokeFlightTimes.length 
+              : 0,
+          },
+        };
 
-      if (success) {
-        navigate("/");
+        console.log("Fingerprint data captured:", fingerprintData);
+
+        try {
+          const response = await fetch("http://localhost:8000/api/v1/fraud/telemetry/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: username.trim() || "guest",
+              ...fingerprintData,
+            }),
+          });
+
+          if (response.ok) {
+            console.log("Fingerprint data sent to backend successfully");
+          } else {
+            console.warn("Backend returned status:", response.status);
+          }
+        } catch (sendError) {
+          console.error("Unable to send fingerprint to backend", sendError);
+        }
+
+        setFingerprintStatus("Browser fingerprint captured for this login.");
+      } catch (error) {
+        console.error("Unable to capture login fingerprint", error);
+        setFingerprintStatus("Fingerprint capture failed. Continuing with standard login.");
       }
-    } catch (err) {
-      console.error(err);
+    }
+
+    const currentMetrics = fingerprintData ? { ...fingerprintData } : {};
+    const success = login(username, password, newDevice, newLocation, currentMetrics);
+
+    resetMetrics();
+    setIsSubmitting(false);
+
+    if (success) {
+      navigate("/");
     }
   };
 
@@ -335,11 +455,44 @@ export default function LoginPage() {
               </Alert>
             )}
 
+            {fingerprintStatus && (
+              <Alert severity={fingerprintStatus.includes("failed") ? "warning" : "info"} sx={{ mb: 2, fontSize: 14 }}>
+                {fingerprintStatus}
+              </Alert>
+            )}
+
+            {/* Fingerprint Info Display */}
+            {/* {fingerprintEnabled && (
+              <Box sx={{ mb: 2, p: 2, bgcolor: "grey.50", border: `1px solid`, borderColor: "divider", borderRadius: 1 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
+                    SECURITY VERIFICATION
+                  </Typography>
+                  {isSubmitting && <CircularProgress size={16} />}
+                </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <Typography sx={{ color: "text.secondary" }}>Keystrokes Tracked:</Typography>
+                    <Typography sx={{ color: "text.primary", fontFamily: "monospace", fontSize: 11 }}>
+                      {keystrokeMetrics.totalKeystrokes}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <Typography sx={{ color: "text.secondary" }}>Session Time:</Typography>
+                    <Typography sx={{ color: "text.primary", fontFamily: "monospace", fontSize: 11 }}>
+                      {((Date.now() - sessionStartTime.current) / 1000).toFixed(1)}s
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )} */}
+
             {/* Sign In Button */}
             <Button
               fullWidth
               type="submit"
               variant="contained"
+              disabled={isSubmitting}
               sx={{
                 height: 48,
                 textTransform: "none",
@@ -349,7 +502,14 @@ export default function LoginPage() {
                 "&:hover": { boxShadow: "none" },
               }}
             >
-              Sign In
+              {isSubmitting ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CircularProgress size={20} color="inherit" />
+                  <span>Signing in...</span>
+                </Box>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </Box>
         </Box>
