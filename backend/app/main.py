@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import engine, Base
-from app.routers import behaviour, verification, incidents, telemetry
+from app.routers import verification, incidents, telemetry
 
 Base.metadata.create_all(bind=engine)
 

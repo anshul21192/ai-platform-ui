@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import SessionTelemetry, UserBehaviour, KnownPattern, Incident
+from app.models import SessionTelemetry, Incident
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/verification", tags=["Verification Callbacks"])
