@@ -197,26 +197,46 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
 
 
      # ============ PATTERN 9: KEYSTROKE DYNAMICS ANOMALIES ============
-    keystroke_events = [e for e in events if e.action == "KEYSTROKE_DYNAMICS" or "averageDwellTime" in e.metadata or "typingSpeed" in e.metadata]
+    keystroke_events = [
+        e for e in events 
+        if e.action == "KEYSTROKE_DYNAMICS" 
+        or "averageDwellTime" in (e.metadata or {}) 
+        or "typingSpeed" in (e.metadata or {}) 
+        or "dwell" in (e.metadata or {})
+    ]
     for ks_event in keystroke_events:
         meta = ks_event.metadata or {}
-        typing_speed = meta.get("typingSpeed", 0)
-        avg_dwell = meta.get("averageDwellTime", 0)
-        avg_flight = meta.get("averageFlightTime", 0)
+        
+        dwell_dict = meta.get("dwell") if isinstance(meta.get("dwell"), dict) else {}
+        flight_dict = meta.get("flight") if isinstance(meta.get("flight"), dict) else {}
+        errors_dict = meta.get("errorsAndPauses") if isinstance(meta.get("errorsAndPauses"), dict) else {}
+        
+        avg_dwell = dwell_dict.get("mean", meta.get("averageDwellTime", 0))
+        avg_flight = flight_dict.get("mean", meta.get("averageFlightTime", 0))
         total_keys = meta.get("totalKeystrokes", 0)
-        backspace_count = meta.get("backspaceCount", 0)
-        pause_count = meta.get("pauseCount", 0)
+        
+        backspace_rate = errors_dict.get(
+            "backspaceRate", 
+            (meta.get("backspaceCount", 0) / total_keys) if total_keys > 0 else 0
+        )
+        longest_pause = errors_dict.get("longestPause", 0)
+        pause_count = meta.get("pauseCount", 1 if longest_pause >= 2000 else 0)
+        
+        typing_speed = meta.get(
+            "typingSpeed", 
+            round(1000.0 / (avg_dwell + avg_flight), 2) if (avg_dwell + avg_flight) > 0 else 0
+        )
 
         # Bot / Script Injection speed (e.g. typing speed > 15 char/sec or dwell time < 15ms)
-        if typing_speed > 15 or (avg_dwell > 0 and avg_dwell < 15):
+        if typing_speed > 15 or (0 < avg_dwell < 15):
             anomalies.append("KEYSTROKE_BOT_SPEED")
 
         # Synthetic Flight Time (near zero or negative flight time indicating automation)
-        if avg_flight > 0 and avg_flight < 10:
+        if 0 <= avg_flight < 10 and total_keys >= 3:
             anomalies.append("KEYSTROKE_UNREALISTIC_FLIGHT_TIME")
 
         # Coercion / Excessive Hesitation / High Error Ratio (backspaces > 40% of keystrokes or pause count >= 4)
-        if (total_keys >= 5 and backspace_count / total_keys > 0.4) or pause_count >= 4:
+        if (total_keys >= 5 and backspace_rate > 0.4) or pause_count >= 4 or longest_pause >= 5000:
             anomalies.append("KEYSTROKE_EXCESSIVE_HESITATION")
 
     
@@ -289,7 +309,13 @@ def analyze_fraud_risk(
     login_events = [e for e in events if e.action == "LOGIN"]
     transfer_events = [e for e in events if e.action == "TRANSFER"]
     settings_events = [e for e in events if e.action.startswith("CHANGE_") or e.action.startswith("UPDATE_")]
-    keystroke_events = [e for e in events if e.action == "KEYSTROKE_DYNAMICS" or "typingSpeed" in e.metadata]
+    keystroke_events = [
+        e for e in events 
+        if e.action == "KEYSTROKE_DYNAMICS" 
+        or "typingSpeed" in (e.metadata or {}) 
+        or "dwell" in (e.metadata or {}) 
+        or "averageDwellTime" in (e.metadata or {})
+    ]
     
     new_device = False
     new_location = False
@@ -301,14 +327,29 @@ def analyze_fraud_risk(
 
     keystroke_summary = None
     if keystroke_events:
-        latest_ks = keystroke_events[-1].metadata
+        latest_ks = keystroke_events[-1].metadata or {}
+        dwell_dict = latest_ks.get("dwell") if isinstance(latest_ks.get("dwell"), dict) else {}
+        flight_dict = latest_ks.get("flight") if isinstance(latest_ks.get("flight"), dict) else {}
+        errors_dict = latest_ks.get("errorsAndPauses") if isinstance(latest_ks.get("errorsAndPauses"), dict) else {}
+        rhythm_dict = latest_ks.get("rhythm") if isinstance(latest_ks.get("rhythm"), dict) else {}
+        
+        avg_dwell = dwell_dict.get("mean", latest_ks.get("averageDwellTime", 0))
+        avg_flight = flight_dict.get("mean", latest_ks.get("averageFlightTime", 0))
+        total_keys = latest_ks.get("totalKeystrokes", 0)
+        typing_speed = latest_ks.get("typingSpeed", round(1000.0 / (avg_dwell + avg_flight), 2) if (avg_dwell + avg_flight) > 0 else 0)
+        
         keystroke_summary = {
-            "typingSpeed": latest_ks.get("typingSpeed"),
-            "averageDwellTime": latest_ks.get("averageDwellTime"),
-            "averageFlightTime": latest_ks.get("averageFlightTime"),
-            "totalKeystrokes": latest_ks.get("totalKeystrokes"),
-            "backspaceCount": latest_ks.get("backspaceCount"),
-            "pauseCount": latest_ks.get("pauseCount")
+            "schemaVersion": latest_ks.get("schemaVersion", 1),
+            "inputMethod": latest_ks.get("inputMethod", "physical-keyboard"),
+            "averageDwellTime": avg_dwell,
+            "averageFlightTime": avg_flight,
+            "dwellStdDev": dwell_dict.get("stdDev", 0),
+            "flightStdDev": flight_dict.get("stdDev", 0),
+            "totalKeystrokes": total_keys,
+            "backspaceRate": errors_dict.get("backspaceRate", (latest_ks.get("backspaceCount", 0) / total_keys) if total_keys > 0 else 0),
+            "longestPause": errors_dict.get("longestPause", 0),
+            "rolloverRate": rhythm_dict.get("rolloverRate", 0),
+            "typingSpeed": typing_speed
         }
     
     current_transfer_amount = 0.0
