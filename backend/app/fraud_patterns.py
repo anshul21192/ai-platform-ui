@@ -29,11 +29,32 @@ SIGNAL_WEIGHTS = {
     "audit_logs_breadth_access": 20,
     "abnormal_dwell_sensitive_screen": 15,
     "rapid_sensitive_action_sequence": 25,
-    "suspicious_navigation_pattern": 15
+    "suspicious_navigation_pattern": 15,
+    "keystroke_bot_speed": 25,
+    "keystroke_unrealistic_flight_time": 20,
+    "keystroke_excessive_hesitation": 15
 }
 
 # ============ FRAUD PATTERNS (Typologies) ============
 FRAUD_PATTERNS = [
+     {
+        "id": "KEYSTROKE-BOT-001",
+        "typology": "Bot / Scripted Attack",
+        "name": "Scripted / Bot Keystroke Dynamics",
+        "description": "Unusually fast typing speed, near-zero dwell or flight time indicating automated script injection or credential stuffing bot.",
+        "indicators": ["keystroke_bot_speed", "keystroke_unrealistic_flight_time"],
+        "risk_score_if_matched": 88,
+        "scenario_id": "F13"
+    },
+    {
+        "id": "KEYSTROKE-COERCION-001",
+        "typology": "Social Engineering / Coercion",
+        "name": "Coerced / Erratic Keystroke Behavior",
+        "description": "High backspace ratio combined with frequent pauses and erratic dwell time during sensitive input execution.",
+        "indicators": ["keystroke_excessive_hesitation"],
+        "risk_score_if_matched": 65,
+        "scenario_id": "F14"
+    },
     {
         "id": "ATO-001",
         "typology": "Account Takeover",

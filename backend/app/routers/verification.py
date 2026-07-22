@@ -1,26 +1,51 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import UserBehaviour, KnownPattern, Incident
+from app.models import SessionTelemetry, Incident
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/verification", tags=["Verification Callbacks"])
 
 @router.get("/verify")
 async def verify_user_callback(user_id: str, session_id: str, action: str, db: Session = Depends(get_db)):
-    record = db.query(UserBehaviour).filter(UserBehaviour.session_id == session_id).first()
+    # Look up session matching both user_id and session_id
+    record = db.query(SessionTelemetry).filter(
+        SessionTelemetry.session_id == session_id,
+        SessionTelemetry.user_id == user_id
+    ).first()
+
     if not record:
-        raise HTTPException(status_code=404, detail="Target session reference not found.")
+        raise HTTPException(
+            status_code=404, 
+            detail="Target session reference not found."
+        )
 
-    if action.lower() == "yes":
-        trusted = KnownPattern(user_id=user_id, typing_speed_wpm=record.typing_speed_wpm, tab_switches=record.tab_switches)
-        db.add(trusted)
+    # Find the corresponding incident record created during ingestion
+    incident = db.query(Incident).filter(
+        Incident.session_id == session_id,
+        Incident.user_id == user_id
+    ).first()
+
+    action_clean = action.lower()
+
+    if action_clean == "yes":
+        if incident:
+            incident.status = "VERIFIED_BY_USER"
         db.commit()
-        return {"status": "Accepted", "message": "Signature verified and saved to trusted storage."}
+        return {"status": "Accepted", "message": "Signature verified. Incident resolved."}
 
-    elif action.lower() == "no":
-        incident = Incident(user_id=user_id, session_id=session_id, risk_score=record.risk_score, reason="User disavowed pattern metrics.", status="ESCALATED")
-        db.add(incident)
+    elif action_clean == "no":
+        if incident:
+            incident.status = "ESCALATED"
+        else:
+            incident = Incident(
+                user_id=user_id, 
+                session_id=session_id, 
+                risk_score=getattr(record, 'risk_score', 0), 
+                reason="User disavowed session activity.", 
+                status="ESCALATED"
+            )
+            db.add(incident)
         db.commit()
         
         email_service.trigger_bank_escalation(user_id, session_id)

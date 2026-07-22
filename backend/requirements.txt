@@ -1,6 +1,7 @@
-fastapi==0.110.0
+fastapi==0.139.2
+openai==2.46.0
+pydantic==2.13.4
+python-dotenv==1.2.2
+SQLAlchemy==2.0.51
+google-cloud-aiplatform==1.42.1   
 uvicorn==0.28.0
-pydantic==2.6.4
-sqlalchemy==2.0.28
-google-cloud-aiplatform==1.42.1
-python-dotenv==1.0.1

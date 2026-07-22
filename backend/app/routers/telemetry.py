@@ -35,27 +35,7 @@ async def ingest_telemetry_events(
 ):
     """
     Ingest telemetry events from the UI and perform fraud detection.
-    
-    Endpoint: POST /api/v1/fraud/telemetry/events
-    
-    Expected payload:
-    {
-        "sessionId": "a1b2c3d4-...",
-        "events": [
-            {
-                "userId": "U1023",
-                "sessionId": "a1b2c3d4-...",
-                "seq": 5,
-                "action": "TRANSFER",
-                "ts": 1784571124942,
-                "dwellFromPrevMs": 4023,
-                "metadata": { "amount": "25000", "currency": "USD", "recipientName": "Offshore Account" }
-            },
-            ...
-        ]
-    }
     """
-    
     if not payload.events:
         return TelemetryEventResponse(
             status="ACCEPTED",
@@ -85,16 +65,15 @@ async def ingest_telemetry_events(
     anomalies = detect_anomalies(payload.events)
     sensitive_actions_detected = [e.action for e in payload.events if e.action in SENSITIVE_ACTIONS]
     
-    # ============ STEP 3: RUN FRAUD DETECTION (if sensitive actions or anomalies) ============
-    risk_analysis = None
-    if sensitive_actions_detected or anomalies:
-        risk_analysis = analyze_fraud_risk(
-            user_id=user_id,
-            session_id=session_id,
-            events=payload.events,
-            anomalies=anomalies,
-            db=db
-        )
+    # ============ STEP 3: RUN FRAUD DETECTION (UNCONDITIONAL) ============
+    # Runs for all sessions so riskAssessment is never null
+    risk_analysis = analyze_fraud_risk(
+        user_id=user_id,
+        session_id=session_id,
+        events=payload.events,
+        anomalies=anomalies,
+        db=db
+    )
     
     # ============ STEP 4: PERSIST SESSION TELEMETRY ============
     session_telemetry = SessionTelemetry(
@@ -102,13 +81,13 @@ async def ingest_telemetry_events(
         session_id=session_id,
         event_count=len(payload.events),
         sensitive_actions=sensitive_actions_detected,
-        risk_score=risk_analysis.get("risk_score", 0) if risk_analysis else 0,
-        risk_level=risk_analysis.get("risk_level", "LOW") if risk_analysis else "LOW",
+        risk_score=risk_analysis.get("risk_score", 0),
+        risk_level=risk_analysis.get("risk_level", "LOW"),
         anomalies=anomalies,
-        recommendation=risk_analysis.get("recommendation", "No action needed") if risk_analysis else "No action needed",
-        action_taken=risk_analysis.get("action_taken", "Logged entry. No anomaly action requirements.") if risk_analysis else "Logged entry."
+        recommendation=risk_analysis.get("recommendation", "No action needed"),
+        action_taken=risk_analysis.get("action_taken", "Logged entry.")
     )
-    db.add(session_telemetry)
+    db.merge(session_telemetry)
     db.commit()
     
     # ============ STEP 5: TRIGGER BACKGROUND ACTIONS (if HIGH risk) ============
@@ -124,7 +103,7 @@ async def ingest_telemetry_events(
             user_id=user_id,
             session_id=session_id,
             risk_score=risk_analysis["risk_score"],
-            reason=f"Telemetry-based detection: {', '.join(anomalies[:3])}",
+            reason=f"Telemetry-based detection: {', '.join(anomalies[:3]) if anomalies else 'High risk behavior'}",
             status="PENDING"
         )
         db.add(incident)
@@ -141,15 +120,6 @@ async def ingest_telemetry_events(
 def detect_anomalies(events: list, user_id: str = None) -> list:
     """
     Detect behavioral anomalies and fraud patterns from event sequence.
-    Uses the fraud patterns catalogue for comprehensive detection.
-    
-    Detects:
-    - Direct route access (navigation anomalies)
-    - Rapid sensitive action sequences (velocity-based)
-    - Bulk operations (data exfiltration)
-    - Unauthorized setting changes
-    - Payee manipulation patterns
-    - Credential change anomalies
     """
     anomalies = []
     actions = [e.action for e in events]
@@ -159,8 +129,7 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
         bulk_events = [e for e in events if e.action == "BULK_DOWNLOAD"]
         for bulk_event in bulk_events:
             record_count = bulk_event.metadata.get("recordCount", 0)
-            # If over 10x baseline or absolute count > 100, flag as anomaly
-            if record_count > 100 or record_count > 60:  # U1003 baseline is ~8-10, so 60+ is spike
+            if record_count > 100 or record_count > 60:
                 anomalies.append("BULK_OPERATION_DETECTED")
                 break
     
@@ -171,7 +140,6 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
     
     # ============ PATTERN 3: DIRECT ROUTE ACCESS ============
     for i, event in enumerate(events):
-        # Check for jumps to sensitive screens
         if event.action == "VIEW_MANAGE_BENEFICIARY" and i > 0:
             prev_actions = [e.action for e in events[:i]]
             if "VIEW_BENEFICIARIES" not in prev_actions:
@@ -179,9 +147,7 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
                 break
         
         if event.action == "VIEW_SETTINGS" and i > 0:
-            prev_actions = [e.action for e in events[:i]]
-            # Settings should be accessed from dashboard or menu, not directly
-            if i == 1:  # Direct jump after login
+            if i == 1:
                 anomalies.append("DIRECT_ROUTE_ACCESS")
                 break
     
@@ -191,7 +157,6 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
     
     for i, event in enumerate(events):
         if event.action in credential_change_actions:
-            # Check if recent LOGIN exists
             recent_login = any(
                 li in range(max(0, i - 5), i) for li in login_events_indices
             )
@@ -202,16 +167,14 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
     delete_beneficiary_indices = [i for i, e in enumerate(events) if e.action == "DELETE_BENEFICIARY"]
     add_payee_indices = [i for i, e in enumerate(events) if e.action == "ADD_PAYEE"]
     
-    # Check for delete followed closely by add (payee swap)
     for del_idx in delete_beneficiary_indices:
         for add_idx in add_payee_indices:
-            if 0 < add_idx - del_idx <= 3:  # Add within 3 events of delete
+            if 0 < add_idx - del_idx <= 3:
                 anomalies.append("PAYEE_MANIPULATION_PATTERN")
                 break
     
     # ============ PATTERN 6: MULTIPLE RAPID ADDITIONS ============
     if len(add_payee_indices) >= 2:
-        # Check if they're close together (within 5 events)
         time_diffs = [add_payee_indices[i+1] - add_payee_indices[i] for i in range(len(add_payee_indices)-1)]
         if any(td < 5 for td in time_diffs):
             anomalies.append("RAPID_MULTIPLE_PAYEES")
@@ -219,7 +182,6 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
     # ============ PATTERN 7: SETTINGS DOWNGRADE BEFORE TRANSFER ============
     transfer_indices = [i for i, e in enumerate(events) if e.action == "TRANSFER"]
     for t_idx in transfer_indices:
-        # Check if alerts were toggled OFF before this transfer
         for i in range(max(0, t_idx - 5), t_idx):
             if events[i].action == "TOGGLE_TRANSACTION_ALERTS":
                 if events[i].metadata.get("enabled") == False:
@@ -231,8 +193,85 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
     breadth_views = sum(1 for a in actions if a.startswith("VIEW_"))
     if has_audit_logs and breadth_views > 4:
         anomalies.append("BREADTH_RECONNAISSANCE")
+
+
+
+     # ============ PATTERN 9: KEYSTROKE DYNAMICS ANOMALIES ============
+    keystroke_events = [e for e in events if e.action == "KEYSTROKE_DYNAMICS" or "averageDwellTime" in e.metadata or "typingSpeed" in e.metadata]
+    for ks_event in keystroke_events:
+        meta = ks_event.metadata or {}
+        typing_speed = meta.get("typingSpeed", 0)
+        avg_dwell = meta.get("averageDwellTime", 0)
+        avg_flight = meta.get("averageFlightTime", 0)
+        total_keys = meta.get("totalKeystrokes", 0)
+        backspace_count = meta.get("backspaceCount", 0)
+        pause_count = meta.get("pauseCount", 0)
+
+        # Bot / Script Injection speed (e.g. typing speed > 15 char/sec or dwell time < 15ms)
+        if typing_speed > 15 or (avg_dwell > 0 and avg_dwell < 15):
+            anomalies.append("KEYSTROKE_BOT_SPEED")
+
+        # Synthetic Flight Time (near zero or negative flight time indicating automation)
+        if avg_flight > 0 and avg_flight < 10:
+            anomalies.append("KEYSTROKE_UNREALISTIC_FLIGHT_TIME")
+
+        # Coercion / Excessive Hesitation / High Error Ratio (backspaces > 40% of keystrokes or pause count >= 4)
+        if (total_keys >= 5 and backspace_count / total_keys > 0.4) or pause_count >= 4:
+            anomalies.append("KEYSTROKE_EXCESSIVE_HESITATION")
+
     
-    return list(set(anomalies))  # Remove duplicates
+    return list(set(anomalies))
+
+
+
+
+
+def get_user_database_baseline(db: Session, user_id: str, current_session_id: str) -> dict:
+    """
+    Dynamically computes a user's historical baseline profile from past database records,
+    explicitly excluding the current active session.
+    """
+    past_sessions = db.query(SessionTelemetry).filter(
+        SessionTelemetry.user_id == user_id,
+        SessionTelemetry.session_id != current_session_id
+    ).all()
+    
+    past_events = db.query(TelemetryEventLog).filter(
+        TelemetryEventLog.user_id == user_id,
+        TelemetryEventLog.session_id != current_session_id
+    ).all()
+    
+    transfer_amounts = []
+    bulk_record_counts = []
+    
+    for event in past_events:
+        meta = event.metadata or {}
+        if event.action == "TRANSFER" and "amount" in meta:
+            try:
+                transfer_amounts.append(float(meta["amount"]))
+            except (ValueError, TypeError):
+                pass
+        if event.action == "BULK_DOWNLOAD" and "recordCount" in meta:
+            try:
+                bulk_record_counts.append(int(meta["recordCount"]))
+            except (ValueError, TypeError):
+                pass
+                
+    total_sessions = len(past_sessions)
+    
+    if total_sessions > 0:
+        max_historical_transfer = max(transfer_amounts, default=2000.0)
+        max_historical_bulk = max(bulk_record_counts, default=50)
+    else:
+        max_historical_transfer = max(transfer_amounts, default=500.0)
+        max_historical_bulk = max(bulk_record_counts, default=10)
+    
+    return {
+        "max_historical_transfer": max_historical_transfer,
+        "max_historical_bulk_records": max_historical_bulk,
+        "past_sessions_recorded": total_sessions,
+        "persona": "Database User Profile"
+    }
 
 
 def analyze_fraud_risk(
@@ -243,37 +282,71 @@ def analyze_fraud_risk(
     db: Session
 ) -> dict:
     """
-    Analyze fraud risk using event patterns and Vertex AI.
+    Analyze fraud risk. Bypasses historical max limit checks entirely for established users.
     """
+    db_baseline = get_user_database_baseline(db, user_id, session_id)
     
-    # Build context from events
     login_events = [e for e in events if e.action == "LOGIN"]
     transfer_events = [e for e in events if e.action == "TRANSFER"]
     settings_events = [e for e in events if e.action.startswith("CHANGE_") or e.action.startswith("UPDATE_")]
+    keystroke_events = [e for e in events if e.action == "KEYSTROKE_DYNAMICS" or "typingSpeed" in e.metadata]
     
     new_device = False
     new_location = False
     
     if login_events:
-        login_meta = login_events[0].metadata
+        login_meta = login_events[0].metadata or {}
         new_device = login_meta.get("newDevice", False)
         new_location = login_meta.get("newLocation", False)
+
+    keystroke_summary = None
+    if keystroke_events:
+        latest_ks = keystroke_events[-1].metadata
+        keystroke_summary = {
+            "typingSpeed": latest_ks.get("typingSpeed"),
+            "averageDwellTime": latest_ks.get("averageDwellTime"),
+            "averageFlightTime": latest_ks.get("averageFlightTime"),
+            "totalKeystrokes": latest_ks.get("totalKeystrokes"),
+            "backspaceCount": latest_ks.get("backspaceCount"),
+            "pauseCount": latest_ks.get("pauseCount")
+        }
     
-    # Build telemetry payload for AI analysis (using NEW SCHEMA)
+    current_transfer_amount = 0.0
+    for te in transfer_events:
+        try:
+            meta = te.metadata or {}
+            amt = float(meta.get("amount", 0))
+            if amt > current_transfer_amount:
+                current_transfer_amount = amt
+        except (ValueError, TypeError):
+            pass
+
+    has_history = db_baseline["past_sessions_recorded"] > 0
+    
+    if has_history:
+        has_large_transfer = False
+        effective_max_transfer = "IGNORED (User has established history)"
+    else:
+        has_large_transfer = current_transfer_amount > db_baseline["max_historical_transfer"] * 2
+        effective_max_transfer = db_baseline["max_historical_transfer"]
+
     telemetry_context = {
         "event_count": len(events),
         "session_duration_ms": events[-1].ts - events[0].ts if events else 0,
-        "has_large_transfer": any(
-            float(e.metadata.get("amount", 0)) > 10000 for e in transfer_events
-        ),
+        "current_transfer_amount": current_transfer_amount,
+        "has_large_transfer": has_large_transfer,
         "has_new_device_login": new_device,
         "has_new_location": new_location,
         "settings_changes": len(settings_events),
+        "sensitive_action_count": sum(1 for e in events if e.action in SENSITIVE_ACTIONS),
+        "max_historical_transfer": effective_max_transfer,
+        "past_sessions_recorded": db_baseline["past_sessions_recorded"],
+        "has_established_history": has_history,
         "anomalies": anomalies,
-        "sensitive_action_count": sum(1 for e in events if e.action in SENSITIVE_ACTIONS)
+        "sensitive_action_count": sum(1 for e in events if e.action in SENSITIVE_ACTIONS),
+        "keystroke_summary": keystroke_summary
     }
     
-    # Use NEW AI method that works with telemetry events
     analysis = ai_service.analyze_telemetry_events(telemetry_context, anomalies, events)
     
     risk_score = analysis.get("risk_score", 0)

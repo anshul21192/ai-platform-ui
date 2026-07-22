@@ -1,5 +1,9 @@
 # Risk Dashboard — Technical & Functional Specification
 
+<img width="1164" height="767" alt="image" src="https://github.com/user-attachments/assets/eeb44436-5e76-4dd4-a7a8-e33f335f7065" />
+
+
+
 ## Purpose
 
 The Risk Dashboard is a purpose-built analytics page for the AI-powered fraud detection platform. It is designed to make behavioral risk visible, explainable, and actionable for security, fraud, and operations teams.

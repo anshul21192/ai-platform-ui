@@ -35,7 +35,22 @@ SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
+
+# use this for gemini api
+GEMINI_API_KEY=
+# use this for vertex ai
+
+
+(get the account key json and store at the root backend folder )
+$env:GOOGLE_APPLICATION_CREDENTIALS="c:\Users\shagun\Downloads\ai-platform-ui\backend\service-account-key.json"
+GOOGLE_CLOUD_PROJECT_ID=
+VERTEX_AI_LOCATION=
+OPENROUTER_API_KEY=
+
 ```
+
+
+
 
 ### 4️⃣ Setup Google Cloud Authentication
 ```bash
@@ -58,70 +73,59 @@ python -m uvicorn app.main:app --reload --port 8000
 ### Example: Submit Events for Fraud Analysis
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/fraud/telemetry/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sessionId": "session-123",
-    "events": [
-      {
-        "userId": "user-001",
-        "sessionId": "session-123",
-        "seq": 1,
-        "action": "LOGIN",
-        "ts": 1234567890000,
-        "dwellFromPrevMs": 0,
-        "metadata": {"newDevice": true}
-      },
-      {
-        "userId": "user-001",
-        "sessionId": "session-123",
-        "seq": 2,
-        "action": "TRANSFER",
-        "ts": 1234567891000,
-        "dwellFromPrevMs": 1000,
-        "metadata": {"amount": 5000}
-      }
-    ]
-  }'
+{
+  "sessionId": "session-testuser-low-01",
+  "events": [
+    {
+      "userId": "testuser",
+      "sessionId": "session-testuser-low-01",
+      "seq": 1,
+      "action": "LOGIN",
+      "ts": 1784600000000,
+      "dwellFromPrevMs": 0,
+      "metadata": { "newDevice": false, "newLocation": false }
+    },
+    {
+      "userId": "testuser",
+      "sessionId": "session-testuser-low-01",
+      "seq": 2,
+      "action": "VIEW_DASHBOARD",
+      "ts": 1784600003000,
+      "dwellFromPrevMs": 3000,
+      "metadata": {}
+    },
+    {
+      "userId": "testuser",
+      "sessionId": "session-testuser-low-01",
+      "seq": 3,
+      "action": "VIEW_TRANSACTIONS",
+      "ts": 1784600007000,
+      "dwellFromPrevMs": 4000,
+      "metadata": {}
+    }
+  ]
+}
+
 ```
 
 **Response:**
 ```json
 {
   "status": "ACCEPTED",
-  "eventsProcessed": 2,
+  "message": "Telemetry events ingested and analyzed",
+  "eventsProcessed": 3,
   "riskAssessment": {
-    "risk_score": 60,
-    "risk_level": "MEDIUM",
-    "reason": "Pattern detected"
+    "risk_score": 10,
+    "risk_level": "LOW",
+    "anomalies": [],
+    "recommendation": "No immediate action required.",
+    "action_taken": "Logged entry. No anomaly action requirements.",
+    "reason": "The user has no established history, and the current session shows no anomalies or sensitive actions. The transfer amount is $0.0, which is consistent with normal activity for a new user. Therefore, the risk score is low."
   }
 }
-```
-
----
-
-## 📁 Project Structure
 
 ```
-behaviour-anomaly-poc/
-├── app/
-│   ├── main.py                 # FastAPI entry point
-│   ├── config.py               # Configuration
-│   ├── database.py             # SQLAlchemy setup
-│   ├── models.py               # Database tables
-│   ├── schemas.py              # Request/Response models
-│   ├── fraud_patterns.py       # Fraud patterns library
-│   ├── routers/
-│   │   └── telemetry.py        # Event ingestion API
-│   └── services/
-│       ├── ai_service.py       # Vertex AI analysis
-│       └── email_service.py    # Email alerts
-├── data/
-│   └── behaviour.db            # SQLite database
-├── requirements.txt
-├── .env                        # Configuration (DO NOT COMMIT)
-└── readme.md
-```
+
 
 ---
 
@@ -161,6 +165,9 @@ behaviour-anomaly-poc/
 **GET** `/api/v1/fraud/telemetry/sessions/{user_id}` - Get user sessions
 
 ---
+
+
+
 
 ## 🐛 Troubleshooting
 
