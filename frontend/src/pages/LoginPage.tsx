@@ -45,66 +45,6 @@ export default function LoginPage() {
   // Check if fingerprint is enabled via env variable
   const fingerprintEnabled = "bYcOv9gpXAX0S0wYP7eq";
   
-  // Keystroke tracking
-  // const [keystrokeMetrics, setKeystrokeMetrics] = useState<KeystrokeMetrics>({
-  //   keystrokeDwellTimes: [],
-  //   keystrokeFlightTimes: [],
-  //   totalKeystrokes: 0,
-  //   sessionDuration: 0,
-  // });
-  
-  // const lastKeyTime = useRef<number>(0);
-  // const sessionStartTime = useRef<number>(Date.now());
-  // const keyPressTimestamps = useRef<number[]>([]);
-
-
-  // Track keystroke dynamics
-  // const handleKeyDown = () => {
-  //   const currentTime = Date.now();
-  //   const lastTime = lastKeyTime.current;
-
-  //   if (lastTime !== 0) {
-  //     // Flight time: time between key releases
-  //     const flightTime = currentTime - lastTime;
-  //     setKeystrokeMetrics((prev) => ({
-  //       ...prev,
-  //       keystrokeFlightTimes: [...prev.keystrokeFlightTimes, flightTime],
-  //     }));
-  //   }
-
-  //   keyPressTimestamps.current.push(currentTime);
-  //   lastKeyTime.current = currentTime;
-  // };
-
-  // const handleKeyUp = () => {
-  //   const currentTime = Date.now();
-    
-  //   if (keyPressTimestamps.current.length > 0) {
-  //     const pressTime = keyPressTimestamps.current[keyPressTimestamps.current.length - 1];
-  //     // Dwell time: how long key was pressed
-  //     const dwellTime = currentTime - pressTime;
-      
-  //     setKeystrokeMetrics((prev) => ({
-  //       ...prev,
-  //       keystrokeDwellTimes: [...prev.keystrokeDwellTimes, dwellTime],
-  //       totalKeystrokes: prev.totalKeystrokes + 1,
-  //     }));
-  //   }
-
-  //   lastKeyTime.current = currentTime;
-  // };
-
-  // const resetMetrics = () => {
-  //   setKeystrokeMetrics({
-  //     keystrokeDwellTimes: [],
-  //     keystrokeFlightTimes: [],
-  //     totalKeystrokes: 0,
-  //     sessionDuration: 0,
-  //   });
-  //   keyPressTimestamps.current = [];
-  //   lastKeyTime.current = 0;
-  //   sessionStartTime.current = Date.now();
-  // };
 
    const {
     getMetrics,
@@ -171,7 +111,6 @@ export default function LoginPage() {
      const currentMetrics = getMetrics();
     console.log("Metrics before sending:", currentMetrics);
 
-    // const success = login(username, password, newDevice, newLocation, currentMetrics);
 
     try {
       const success = login(
@@ -467,32 +406,6 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* Fingerprint Info Display */}
-            {/* {fingerprintEnabled && (
-              <Box sx={{ mb: 2, p: 2, bgcolor: "grey.50", border: `1px solid`, borderColor: "divider", borderRadius: 1 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                    SECURITY VERIFICATION
-                  </Typography>
-                  {isSubmitting && <CircularProgress size={16} />}
-                </Box>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <Typography sx={{ color: "text.secondary" }}>Keystrokes Tracked:</Typography>
-                    <Typography sx={{ color: "text.primary", fontFamily: "monospace", fontSize: 11 }}>
-                      {keystrokeMetrics.totalKeystrokes}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <Typography sx={{ color: "text.secondary" }}>Session Time:</Typography>
-                    <Typography sx={{ color: "text.primary", fontFamily: "monospace", fontSize: 11 }}>
-                      {((Date.now() - sessionStartTime.current) / 1000).toFixed(1)}s
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            )} */}
-
             {/* Sign In Button */}
             <Button
               fullWidth
@@ -508,15 +421,15 @@ export default function LoginPage() {
                 "&:hover": { boxShadow: "none" },
               }}
             >
-              Sign In
-              {/* {isSubmitting ? (
+              {/* Sign In */}
+              {isSubmitting ? (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <CircularProgress size={20} color="inherit" />
                   <span>Signing in...</span>
                 </Box>
               ) : (
                 "Sign In"
-              )} */}
+              )}
             </Button>
           </Box>
         </Box>
