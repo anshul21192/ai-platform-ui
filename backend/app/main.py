@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import verification, incidents, telemetry
 
@@ -8,6 +9,14 @@ app = FastAPI(
     title="Core Anomaly Analytics Hub",
     description="Banking behavior evaluation system framework infrastructure engine.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
