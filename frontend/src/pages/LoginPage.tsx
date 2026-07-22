@@ -25,15 +25,9 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
 import { useAuth } from "../contexts/AuthContext";
+import {useKeystrokeDynamics} from "../hooks/useKeystrokeDynamics";
 
-interface KeystrokeMetrics {
-  keystrokeDwellTimes: number[];
-  keystrokeFlightTimes: number[];
-  totalKeystrokes: number;
-  sessionDuration: number;
-  averageDwellTime?: number;
-  averageFlightTime?: number;
-}
+
 
 export default function LoginPage() {
   const { login, loginError, clearLoginError } = useAuth();
@@ -52,65 +46,72 @@ export default function LoginPage() {
   const fingerprintEnabled = "bYcOv9gpXAX0S0wYP7eq";
   
   // Keystroke tracking
-  const [keystrokeMetrics, setKeystrokeMetrics] = useState<KeystrokeMetrics>({
-    keystrokeDwellTimes: [],
-    keystrokeFlightTimes: [],
-    totalKeystrokes: 0,
-    sessionDuration: 0,
-  });
+  // const [keystrokeMetrics, setKeystrokeMetrics] = useState<KeystrokeMetrics>({
+  //   keystrokeDwellTimes: [],
+  //   keystrokeFlightTimes: [],
+  //   totalKeystrokes: 0,
+  //   sessionDuration: 0,
+  // });
   
-  const lastKeyTime = useRef<number>(0);
-  const sessionStartTime = useRef<number>(Date.now());
-  const keyPressTimestamps = useRef<number[]>([]);
+  // const lastKeyTime = useRef<number>(0);
+  // const sessionStartTime = useRef<number>(Date.now());
+  // const keyPressTimestamps = useRef<number[]>([]);
 
 
   // Track keystroke dynamics
-  const handleKeyDown = () => {
-    const currentTime = Date.now();
-    const lastTime = lastKeyTime.current;
+  // const handleKeyDown = () => {
+  //   const currentTime = Date.now();
+  //   const lastTime = lastKeyTime.current;
 
-    if (lastTime !== 0) {
-      // Flight time: time between key releases
-      const flightTime = currentTime - lastTime;
-      setKeystrokeMetrics((prev) => ({
-        ...prev,
-        keystrokeFlightTimes: [...prev.keystrokeFlightTimes, flightTime],
-      }));
-    }
+  //   if (lastTime !== 0) {
+  //     // Flight time: time between key releases
+  //     const flightTime = currentTime - lastTime;
+  //     setKeystrokeMetrics((prev) => ({
+  //       ...prev,
+  //       keystrokeFlightTimes: [...prev.keystrokeFlightTimes, flightTime],
+  //     }));
+  //   }
 
-    keyPressTimestamps.current.push(currentTime);
-    lastKeyTime.current = currentTime;
-  };
+  //   keyPressTimestamps.current.push(currentTime);
+  //   lastKeyTime.current = currentTime;
+  // };
 
-  const handleKeyUp = () => {
-    const currentTime = Date.now();
+  // const handleKeyUp = () => {
+  //   const currentTime = Date.now();
     
-    if (keyPressTimestamps.current.length > 0) {
-      const pressTime = keyPressTimestamps.current[keyPressTimestamps.current.length - 1];
-      // Dwell time: how long key was pressed
-      const dwellTime = currentTime - pressTime;
+  //   if (keyPressTimestamps.current.length > 0) {
+  //     const pressTime = keyPressTimestamps.current[keyPressTimestamps.current.length - 1];
+  //     // Dwell time: how long key was pressed
+  //     const dwellTime = currentTime - pressTime;
       
-      setKeystrokeMetrics((prev) => ({
-        ...prev,
-        keystrokeDwellTimes: [...prev.keystrokeDwellTimes, dwellTime],
-        totalKeystrokes: prev.totalKeystrokes + 1,
-      }));
-    }
+  //     setKeystrokeMetrics((prev) => ({
+  //       ...prev,
+  //       keystrokeDwellTimes: [...prev.keystrokeDwellTimes, dwellTime],
+  //       totalKeystrokes: prev.totalKeystrokes + 1,
+  //     }));
+  //   }
 
-    lastKeyTime.current = currentTime;
-  };
+  //   lastKeyTime.current = currentTime;
+  // };
 
-  const resetMetrics = () => {
-    setKeystrokeMetrics({
-      keystrokeDwellTimes: [],
-      keystrokeFlightTimes: [],
-      totalKeystrokes: 0,
-      sessionDuration: 0,
-    });
-    keyPressTimestamps.current = [];
-    lastKeyTime.current = 0;
-    sessionStartTime.current = Date.now();
-  };
+  // const resetMetrics = () => {
+  //   setKeystrokeMetrics({
+  //     keystrokeDwellTimes: [],
+  //     keystrokeFlightTimes: [],
+  //     totalKeystrokes: 0,
+  //     sessionDuration: 0,
+  //   });
+  //   keyPressTimestamps.current = [];
+  //   lastKeyTime.current = 0;
+  //   sessionStartTime.current = Date.now();
+  // };
+
+   const {
+    getMetrics,
+    handleKeyDown,
+    handleKeyUp,
+    resetMetrics,
+  } = useKeystrokeDynamics();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,15 +138,6 @@ export default function LoginPage() {
           timestamp: new Date().toISOString(),
           requestId: (fingerprintResult as { requestId?: string }).requestId ?? null,
           userName: username.trim() || "guest",
-          keystrokeMetrics: {
-            totalKeystrokes: keystrokeMetrics.totalKeystrokes,
-            averageDwellTime: keystrokeMetrics.keystrokeDwellTimes.length > 0 
-              ? keystrokeMetrics.keystrokeDwellTimes.reduce((a, b) => a + b, 0) / keystrokeMetrics.keystrokeDwellTimes.length 
-              : 0,
-            averageFlightTime: keystrokeMetrics.keystrokeFlightTimes.length > 0 
-              ? keystrokeMetrics.keystrokeFlightTimes.reduce((a, b) => a + b, 0) / keystrokeMetrics.keystrokeFlightTimes.length 
-              : 0,
-          },
         };
 
         console.log("Fingerprint data captured:", fingerprintData);
@@ -176,14 +168,28 @@ export default function LoginPage() {
       }
     }
 
-    const currentMetrics = fingerprintData ? { ...fingerprintData } : {};
-    const success = login(username, password, newDevice, newLocation, currentMetrics);
+     const currentMetrics = getMetrics();
+    console.log("Metrics before sending:", currentMetrics);
+
+    // const success = login(username, password, newDevice, newLocation, currentMetrics);
+
+    try {
+      const success = login(
+        username,
+        password,
+        newDevice,
+        newLocation,
+        currentMetrics
+      );
 
     resetMetrics();
     setIsSubmitting(false);
 
     if (success) {
       navigate("/");
+    }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -502,14 +508,15 @@ export default function LoginPage() {
                 "&:hover": { boxShadow: "none" },
               }}
             >
-              {isSubmitting ? (
+              Sign In
+              {/* {isSubmitting ? (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <CircularProgress size={20} color="inherit" />
                   <span>Signing in...</span>
                 </Box>
               ) : (
                 "Sign In"
-              )}
+              )} */}
             </Button>
           </Box>
         </Box>
