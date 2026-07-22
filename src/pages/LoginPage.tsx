@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [newLocation, setNewLocation] = useState(false);
 
   const {
+    containerRef,
     getMetrics,
     handleKeyDown,
     handleKeyUp,
@@ -54,7 +55,7 @@ export default function LoginPage() {
         password,
         newDevice,
         newLocation,
-        currentMetrics
+        currentMetrics ?? undefined
       );
 
       resetMetrics();
@@ -182,7 +183,7 @@ export default function LoginPage() {
           </Box>
 
           {/* Form */}
-          <Box component="form" noValidate autoComplete="off" onSubmit={handleSubmit}>
+          <Box component="form" ref={containerRef} noValidate autoComplete="off" onSubmit={handleSubmit}>
             {/* Email */}
             <TextField
               fullWidth
