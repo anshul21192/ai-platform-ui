@@ -7,11 +7,11 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
-import StatCard from "../../components/StatCard";
-import TransactionTable from "../../components/TransactionTable";
-import type { Transaction } from "../../components/TransactionTable";
-import { fetchSummaryTransactions } from "../../api/transactions";
-import { useBeneficiary } from "../../contexts/BeneficiaryContext";
+import StatCard from "../components/StatCard";
+import TransactionTable from "../components/TransactionTable";
+import type { Transaction } from "../components/TransactionTable";
+import { fetchSummaryTransactions } from "../api/transactions";
+import { useBeneficiary } from "../contexts/BeneficiaryContext";
 
 const barLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
 const barValues = [450, 320, 510, 380, 420, 550, 600];

@@ -1,5 +1,5 @@
 // frontend/src/pages/RiskDashboardPage.tsx
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -138,10 +138,17 @@ export default function RiskDashboardPage() {
   const theme = useTheme();
   const [selectedSession, setSelectedSession] = useState(sessionTelemetry[2]);
 
+  const riskLevelCounts = useMemo(() => {
+    return riskDistribution.reduce(
+      (acc, item) => ({ ...acc, [item.label]: item.value }),
+      {} as Record<string, number>,
+    );
+  }, []);
+
   return (
     <Box sx={{ p: 4 }}>
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12 }}>
+        <Grid item component="div" xs={12}>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>
             Risk & Fraud Analytics
           </Typography>
@@ -152,7 +159,7 @@ export default function RiskDashboardPage() {
         </Grid>
 
         {riskSummaryCards.map((card) => (
-          <Grid size={{ xs: 12, md: 6, lg: 3 }} key={card.title}>
+          <Grid item xs={12} md={6} lg={3} key={card.title}>
             <Card variant="outlined" sx={{ height: "100%", borderColor: card.color }}>
               <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Box
@@ -182,7 +189,7 @@ export default function RiskDashboardPage() {
           </Grid>
         ))}
 
-        <Grid size={{ xs: 12, lg: 8 }}>
+        <Grid item xs={12} lg={8}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, gap: 2 }}>
@@ -209,7 +216,7 @@ export default function RiskDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 4 }}>
+        <Grid item xs={12} lg={4}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>
               <Box sx={{ mb: 2 }}>
@@ -240,7 +247,7 @@ export default function RiskDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid item xs={12} lg={6}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
@@ -297,7 +304,7 @@ export default function RiskDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid item xs={12} lg={6}>
           <Card variant="outlined" sx={{ height: "100%" }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
@@ -341,7 +348,7 @@ export default function RiskDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12 }}>
+        <Grid item xs={12}>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
@@ -394,7 +401,7 @@ export default function RiskDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12 }}>
+        <Grid item xs={12}>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>

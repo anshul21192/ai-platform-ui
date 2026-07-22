@@ -24,7 +24,7 @@ import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 interface KeystrokeMetrics {
   keystrokeDwellTimes: number[];

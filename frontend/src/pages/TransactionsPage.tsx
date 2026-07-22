@@ -19,10 +19,10 @@ import Grid from "@mui/material/Grid";
 import DownloadIcon from "@mui/icons-material/Download";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import SearchIcon from "@mui/icons-material/Search";
-import TransactionTable from "../../components/TransactionTable";
-import type { Transaction, Column } from "../../components/TransactionTable";
-import { fetchDetailedTransactions } from "../../api/transactions";
-import { trackEvent } from "../../utils/eventLogger";
+import TransactionTable from "../components/TransactionTable";
+import type { Transaction, Column } from "../components/TransactionTable";
+import { fetchDetailedTransactions } from "../api/transactions";
+import { trackEvent } from "../utils/eventLogger";
 
 function downloadCsv(transactions: Transaction[]) {
   const headers = ["Name", "Category", "Date", "Status", "Amount"];
