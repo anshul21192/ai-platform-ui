@@ -46,7 +46,8 @@ export default function LoginPage() {
   const fingerprintEnabled = "bYcOv9gpXAX0S0wYP7eq";
   
 
-   const {
+  const {
+    containerRef,
     getMetrics,
     handleKeyDown,
     handleKeyUp,
@@ -247,7 +248,7 @@ export default function LoginPage() {
           </Box>
 
           {/* Form */}
-          <Box component="form" noValidate autoComplete="off" onSubmit={handleSubmit}>
+          <Box component="form" ref={containerRef} noValidate autoComplete="off" onSubmit={handleSubmit}>
             {/* Email */}
             <TextField
               fullWidth
