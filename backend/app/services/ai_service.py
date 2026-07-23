@@ -1,42 +1,68 @@
 import os
 import json
-# pyrefly: ignore [missing-import]
-from openai import OpenAI
+from app.config import settings
 from app.fraud_patterns import (
     SIGNAL_WEIGHTS, FRAUD_PATTERNS, RISK_BANDS, get_risk_band, 
     match_fraud_pattern, get_baseline
 )
+
+try:
+    import vertexai
+    from vertexai.generative_models import GenerativeModel, GenerationConfig
+    HAS_VERTEX_SDK = True
+except ImportError:
+    HAS_VERTEX_SDK = False
+
+try:
+    from openai import OpenAI
+    HAS_OPENAI_SDK = True
+except ImportError:
+    HAS_OPENAI_SDK = False
+
 class AIService:
     def __init__(self):
-        # Initialize OpenRouter client
-        api_key = os.getenv("OPENROUTER_API_KEY")
-        if api_key:
-            self.client = OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=api_key,
-            )
-            # Choose any model available on OpenRouter
-            self.model_name = "openai/gpt-4o-mini"  # or "meta-llama/llama-3-70b-instruct"
-        else:
-            self.client = None
+        self.use_vertex = False
+        self.use_openrouter = False
+        self.vertex_model = None
+        self.openai_client = None
+
+        # 1. Attempt Vertex AI Gemini initialization (uses ADC / Attached Workload SA)
+        project_id = settings.GOOGLE_CLOUD_PROJECT_ID
+        location = settings.VERTEX_AI_LOCATION or "us-central1"
+        if HAS_VERTEX_SDK and project_id:
+            try:
+                vertexai.init(project=project_id, location=location)
+                self.vertex_model = GenerativeModel("gemini-1.5-flash")
+                self.use_vertex = True
+                print(f"[AIService] Initialized Vertex AI Gemini (gemini-1.5-flash) for project: {project_id}")
+            except Exception as e:
+                print(f"[AIService] Vertex AI init failed: {e}")
+                self.use_vertex = False
+
+        # 2. OpenRouter fallback if Vertex AI not configured
+        if not self.use_vertex and HAS_OPENAI_SDK:
+            api_key = os.getenv("OPENROUTER_API_KEY")
+            if api_key:
+                self.openai_client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=api_key,
+                )
+                self.model_name = "openai/gpt-4o-mini"
+                self.use_openrouter = True
+                print("[AIService] Initialized OpenRouter fallback client.")
 
     def analyze_telemetry_events(self, telemetry_context: dict, anomalies: list, events: list = None) -> dict:
-        if not self.client:
+        if self.use_vertex:
+            return self._analyze_with_vertex(telemetry_context, anomalies)
+        elif self.use_openrouter:
+            return self._analyze_with_openrouter(telemetry_context, anomalies)
+        else:
             return self._fallback_telemetry_analysis(telemetry_context, anomalies)
-        
-        fraud_patterns_context = "\n".join([
-            f"- {p['typology']}: {p['name']} (score: {p['risk_score_if_matched']})"
-            for p in FRAUD_PATTERNS
-        ])
-        
-        signal_weights_context = "\n".join([
-            f"- {k}: {v} points" for k, v in SIGNAL_WEIGHTS.items()
-        ])
-        
+
+    def _build_prompt(self, telemetry_context: dict, anomalies: list) -> str:
         has_history = telemetry_context.get('has_established_history', False)
         
-        # PROMPT UPDATED TO RESPECT ESTABLISHED HISTORY RULE
-        prompt = f'''
+        return f'''
 You are an advanced banking fraud detection AI system with expertise in behavioral biometrics and event pattern analysis.
 Analyze this user session for suspicious behavior using the patterns, signal weights, and keystroke biometrics benchmarks below.
 
@@ -50,7 +76,6 @@ HUMAN KEYSTROKE BIOMETRICS BENCHMARKS:
 - Flight Time (inter-key pause): Normal human range is 80ms - 250ms. (<10ms indicates automated tool).
 - Backspace / Error Ratio: High ratio (>40% of total keys) combined with long pauses indicates hesitation, coercion, or social engineering APP scams.
 
-
 CURRENT LIVE SESSION TELEMETRY:
 - Total Events: {telemetry_context.get('event_count', 0)}
 - Session Duration: {telemetry_context.get('session_duration_ms', 0)}ms
@@ -62,30 +87,54 @@ CURRENT LIVE SESSION TELEMETRY:
 - Keystroke Dynamics Summary: {json.dumps(telemetry_context.get('keystroke_summary', {})) if telemetry_context.get('keystroke_summary') else 'None'}
 
 EVALUATION PROTOCOL:
-1. **Historical Limit Check**: 
-   - If `Has Established History` is **True**, you **MUST NOT** evaluate or penalize the current transfer amount against any historical maximum limit. Treat the transfer amount purely on its standalone context.
-   - If `Has Established History` is **False** (brand-new user), evaluate transfer amounts strictly against standard cold-start baselines.
-2. **Proportional Scoring**: Avoid binary 0 or 100 extremes unless a major multi-step attack pattern (like an ATO chain or guardrail removal) is explicitly detected in the anomalies. A new device login with a standard transfer for an established user should yield a balanced LOW or MEDIUM risk score.
-
- KEYSTROKE BOT SPEED / SCRIPT INJECTION → Risk 80+
-- KEYSTROKE UNREALISTIC FLIGHT TIME → Risk 75+
-- KEYSTROKE EXCESSIVE HESITATION / COERCION → Risk 60+
+1. Historical Limit Check: If Has Established History is True, do NOT penalize current transfer amount against historical max limits. Treat transfer on standalone context. If False, evaluate strictly against cold-start baselines.
+2. Proportional Scoring: Avoid binary 0 or 100 extremes unless a major multi-step attack pattern is detected.
+3. Keystroke Anomaly Weighting:
+   - KEYSTROKE BOT SPEED / SCRIPT INJECTION -> Risk 80+
+   - KEYSTROKE UNREALISTIC FLIGHT TIME -> Risk 75+
+   - KEYSTROKE EXCESSIVE HESITATION / COERCION -> Risk 60+
 
 RISK BANDS:
 - LOW (0-39): Allow, normal activity
 - MEDIUM (40-69): Step-up authentication required
 - HIGH (70-100): Block, incident escalation
 
-Respond in STRICT JSON format:
+Respond in STRICT JSON format matching:
 {{
     "risk_score": <integer 0-100>,
     "risk_level": "<LOW|MEDIUM|HIGH>",
     "matched_patterns": ["pattern names if any"],
-    "reason": "<detailed 2-3 sentence explanation acknowledging the user's history status and evaluating anomalies proportionally>"
+    "reason": "<detailed 2-3 sentence explanation acknowledging history status and anomalies>"
 }}
 '''
+
+    def _analyze_with_vertex(self, telemetry_context: dict, anomalies: list) -> dict:
+        prompt = self._build_prompt(telemetry_context, anomalies)
         try:
-            response = self.client.chat.completions.create(
+            config = GenerationConfig(
+                temperature=0.2,
+                response_mime_type="application/json"
+            )
+            response = self.vertex_model.generate_content(
+                prompt,
+                generation_config=config
+            )
+            result = json.loads(response.text.strip())
+            return {
+                "risk_score": result.get("risk_score", 50),
+                "risk_level": result.get("risk_level", "MEDIUM"),
+                "reason": f"[Vertex AI Gemini] {result.get('reason', 'Telemetry analysis complete')}",
+                "anomalies": anomalies,
+                "matched_patterns": result.get("matched_patterns", [])
+            }
+        except Exception as e:
+            print(f"[AIService] Vertex AI generation failed: {e}")
+            return self._fallback_telemetry_analysis(telemetry_context, anomalies, error=f"Vertex AI error: {str(e)}")
+
+    def _analyze_with_openrouter(self, telemetry_context: dict, anomalies: list) -> dict:
+        prompt = self._build_prompt(telemetry_context, anomalies)
+        try:
+            response = self.openai_client.chat.completions.create(
                 model=self.model_name,
                 messages=[
                     {"role": "system", "content": "You are a precise fraud detection assistant that outputs only valid JSON."},
@@ -94,10 +143,8 @@ Respond in STRICT JSON format:
                 temperature=0.2,
                 response_format={"type": "json_object"}
             )
-            
             raw_content = response.choices[0].message.content.strip()
             result = json.loads(raw_content)
-            
             return {
                 "risk_score": result.get("risk_score", 50),
                 "risk_level": result.get("risk_level", "MEDIUM"),
@@ -124,11 +171,11 @@ Respond in STRICT JSON format:
         
         # Amplify if new device/location + large transfer
         if telemetry_context.get('has_new_device_login') and telemetry_context.get('has_large_transfer'):
-            risk_score += 25  # Extra weight for ATO pattern
+            risk_score += 25
             matched_patterns.append("Account Takeover (new device + transfer)")
         
         if telemetry_context.get('has_new_location') and telemetry_context.get('has_large_transfer'):
-            risk_score += 20  # Extra weight for geographic anomaly
+            risk_score += 20
             matched_patterns.append("Geographic Anomaly (new location + transfer)")
         
         # Credential changes
@@ -176,16 +223,11 @@ Respond in STRICT JSON format:
         has_bulk_download = any("BULK_OPERATION" in a for a in anomalies)
         has_extreme_transfer = any("EXTREME_TRANSFER" in a for a in anomalies)
 
-        has_hesitation = any("KEYSTROKE_EXCESSIVE_HESITATION" in a for a in anomalies)
-
         if has_bot_speed or has_unrealistic_flight:
             risk_score = max(risk_score, 88)
             matched_patterns.append("Scripted / Bot Keystroke Dynamics")
-        if has_hesitation:
-            risk_score = max(risk_score, 62)  # MODERATE RISK: Triggers Step-Up 2FA OTP
-            matched_patterns.append("Keystroke Hesitation & Coercion Anomaly")
         if has_guardrail_removal:
-            risk_score = max(risk_score, 65)  # MODERATE RISK: Triggers Step-Up 2FA
+            risk_score = max(risk_score, 85)
             matched_patterns.append("Guardrail Removal + Transfer Attack")
         if has_payee_manipulation:
             risk_score = max(risk_score, 82)
@@ -197,20 +239,17 @@ Respond in STRICT JSON format:
             risk_score = max(risk_score, 82)
             matched_patterns.append("Bulk Data Extraction")
         if has_direct_route:
-            risk_score = max(risk_score, 55)  # MODERATE RISK: Triggers Step-Up 2FA
+            risk_score = max(risk_score, 75)
             matched_patterns.append("Navigation Anomaly (direct route access)")
         if has_extreme_transfer:
             risk_score = max(risk_score, 89)
             matched_patterns.append("Extreme Transfer Amount (>=$5000)")
         
-        # Session duration scoring
         session_duration_ms = telemetry_context.get('session_duration_ms', 0)
         if session_duration_ms < 120000 and telemetry_context.get('sensitive_action_count', 0) > 2:
-            risk_score += 10  # Rapid suspicious actions
+            risk_score += 10
         
         risk_score = min(risk_score, 100)
-        
-        # Determine risk level based on RISK_BANDS
         risk_band_info = get_risk_band(risk_score)
         risk_level = risk_band_info["name"]
         

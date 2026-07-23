@@ -8,14 +8,11 @@ SMTP_PORT=
 SMTP_USER=
 SMTP_PASSWORD=
 
+# ============ VERTEX AI CONFIGURATION (KEYLESS ADC) ============
+# 1. On Cloud Run: Attached Workload SA automatically provides ADC credentials.
+# 2. Local Dev: Run `gcloud auth application-default login` with your SSO account.
+GOOGLE_CLOUD_PROJECT_ID=hack-team-test2026
+VERTEX_AI_LOCATION=us-central1
 
-# use this for gemini api
-GEMINI_API_KEY=
-# use this for vertex ai
-
-
-(get the account key json and store at the root backend folder )
-$env:GOOGLE_APPLICATION_CREDENTIALS="c:\Users\shagun\Downloads\ai-platform-ui\backend\service-account-key.json"
-GOOGLE_CLOUD_PROJECT_ID=
-VERTEX_AI_LOCATION=
+# Fallback AI Provider (Optional)
 OPENROUTER_API_KEY=

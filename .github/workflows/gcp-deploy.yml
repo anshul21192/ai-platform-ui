@@ -5,43 +5,49 @@ on:
       - main
 
 env:
-  GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-  GCP_REGION: ${{ secrets.GCP_REGION }}
-  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE_NAME }}
-  BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE_NAME }}
+  GCP_PROJECT: ${{ vars.PROJECT_ID }}
+  GCP_REGION: ${{ secrets.GCP_REGION || 'us-central1' }}
+  FRONTEND_SERVICE: ${{ secrets.FRONTEND_SERVICE_NAME || 'ai-platform-frontend' }}
+  BACKEND_SERVICE: ${{ secrets.BACKEND_SERVICE_NAME || 'ai-platform-backend' }}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v1
+      - name: Authenticate to GCP via Workload Identity Federation
+        uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.INFRA_SA_EMAIL }}
 
       - name: Configure gcloud and Docker auth
         run: |
-          gcloud --quiet config set project $GCP_PROJECT
+          gcloud --quiet config set project ${{ vars.PROJECT_ID }}
           gcloud --quiet config set run/region $GCP_REGION
           gcloud auth configure-docker --quiet
 
       - name: Build & push frontend image
         run: |
-          docker build -t gcr.io/$GCP_PROJECT/frontend:${{ github.sha }} -f frontend/Dockerfile .
-          docker push gcr.io/$GCP_PROJECT/frontend:${{ github.sha }}
+          docker build -t gcr.io/${{ vars.PROJECT_ID }}/frontend:${{ github.sha }} -f frontend/Dockerfile .
+          docker push gcr.io/${{ vars.PROJECT_ID }}/frontend:${{ github.sha }}
 
       - name: Build & push backend image
         run: |
-          docker build -t gcr.io/$GCP_PROJECT/backend:${{ github.sha }} -f backend/Dockerfile .
-          docker push gcr.io/$GCP_PROJECT/backend:${{ github.sha }}
+          docker build -t gcr.io/${{ vars.PROJECT_ID }}/backend:${{ github.sha }} -f backend/Dockerfile .
+          docker push gcr.io/${{ vars.PROJECT_ID }}/backend:${{ github.sha }}
 
-      - name: Deploy backend to Cloud Run
+      - name: Deploy backend to Cloud Run (attached Workload SA for Vertex AI)
         run: |
           gcloud run deploy $BACKEND_SERVICE \
-            --image gcr.io/$GCP_PROJECT/backend:${{ github.sha }} \
+            --image gcr.io/${{ vars.PROJECT_ID }}/backend:${{ github.sha }} \
+            --service-account ${{ vars.WORKLOAD_SA_EMAIL }} \
+            --set-env-vars GOOGLE_CLOUD_PROJECT_ID=${{ vars.PROJECT_ID }},VERTEX_AI_LOCATION=$GCP_REGION \
             --platform managed \
             --region $GCP_REGION \
             --allow-unauthenticated \
@@ -50,8 +56,9 @@ jobs:
       - name: Deploy frontend to Cloud Run
         run: |
           gcloud run deploy $FRONTEND_SERVICE \
-            --image gcr.io/$GCP_PROJECT/frontend:${{ github.sha }} \
+            --image gcr.io/${{ vars.PROJECT_ID }}/frontend:${{ github.sha }} \
             --platform managed \
             --region $GCP_REGION \
             --allow-unauthenticated \
             --quiet
+
