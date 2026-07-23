@@ -217,9 +217,9 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
         
         backspace_rate = errors_dict.get(
             "backspaceRate", 
-            (meta.get("backspaceCount", 0) / total_keys) if total_keys > 0 else 0
+            meta.get("backspaceRate", (meta.get("backspaceCount", 0) / total_keys) if total_keys > 0 else 0)
         )
-        longest_pause = errors_dict.get("longestPause", 0)
+        longest_pause = errors_dict.get("longestPause", meta.get("longestPause", 0))
         pause_count = meta.get("pauseCount", 1 if longest_pause >= 2000 else 0)
         
         typing_speed = meta.get(
@@ -346,9 +346,9 @@ def analyze_fraud_risk(
             "dwellStdDev": dwell_dict.get("stdDev", 0),
             "flightStdDev": flight_dict.get("stdDev", 0),
             "totalKeystrokes": total_keys,
-            "backspaceRate": errors_dict.get("backspaceRate", (latest_ks.get("backspaceCount", 0) / total_keys) if total_keys > 0 else 0),
-            "longestPause": errors_dict.get("longestPause", 0),
-            "rolloverRate": rhythm_dict.get("rolloverRate", 0),
+            "backspaceRate": errors_dict.get("backspaceRate", latest_ks.get("backspaceRate", (latest_ks.get("backspaceCount", 0) / total_keys) if total_keys > 0 else 0)),
+            "longestPause": errors_dict.get("longestPause", latest_ks.get("longestPause", 0)),
+            "rolloverRate": rhythm_dict.get("rolloverRate", latest_ks.get("rolloverRate", 0)),
             "typingSpeed": typing_speed
         }
     
