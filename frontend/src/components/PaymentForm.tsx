@@ -18,7 +18,7 @@ import {
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { useBeneficiary, type Beneficiary } from "../contexts/BeneficiaryContext";
-import { trackEvent } from "../utils/eventLogger";
+import { trackEvent, flushAsync } from "../utils/eventLogger";
 
 const inputSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
@@ -89,34 +89,44 @@ export default function PaymentForm({ config }: PaymentFormProps) {
     setCurrency(event.target.value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
     setProcessing(true);
     setSuccessMessage(null);
 
-    // Track the transaction event (which triggers an immediate telemetry flush)
+    // Track the transaction event (which pushes into event buffer)
     trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber, note });
 
-    // Wait 1.5s to let telemetry evaluate and allow the block overlay to hook in if malicious
-    setTimeout(() => {
-      // If the page hasn't been taken over by the block overlay, the user is safe!
-      setProcessing(false);
-      setSuccessMessage(`Transaction processed successfully! Sent $${amount} to ${recipientName}.`);
-      
-      // Reset form fields
-      setAmount("");
-      setNote("");
-      setSelectedRecipient(null);
-      setRecipientName("");
-      setAccountNumber("");
+    // Synchronously flush telemetry and await the backend risk assessment
+    const flushData = await flushAsync();
+    const riskAssessment = flushData?.riskAssessment;
+    const riskScore = riskAssessment?.risk_score || 0;
+    const isBlocked = riskAssessment?.is_blocked || false;
 
-      // Redirect back to overview after 3 seconds
-      setTimeout(() => {
-        navigate("/");
-      }, 3000);
-    }, 1500);
+    // If Moderate Risk (40-79%) or High Risk (80+%), STOP!
+    // Do NOT show transaction success message or navigate away.
+    // The 2FA modal or Blocked Screen handles the session.
+    if (isBlocked || (riskScore >= 40 && riskScore < 80)) {
+      setProcessing(false);
+      return;
+    }
+
+    setProcessing(false);
+    setSuccessMessage(`Transaction processed successfully! Sent $${amount} to ${recipientName}.`);
+    
+    // Reset form fields
+    setAmount("");
+    setNote("");
+    setSelectedRecipient(null);
+    setRecipientName("");
+    setAccountNumber("");
+
+    // Redirect back to overview after 3 seconds
+    setTimeout(() => {
+      navigate("/");
+    }, 3000);
   };
 
   return (

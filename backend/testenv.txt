@@ -3,8 +3,8 @@ DATABASE_URL=sqlite:///./data/behaviour.db
 BASE_URL=http://localhost:8000
 
 # SMTP configuration email sending
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
+SMTP_HOST=
+SMTP_PORT=
 SMTP_USER=
 SMTP_PASSWORD=
 

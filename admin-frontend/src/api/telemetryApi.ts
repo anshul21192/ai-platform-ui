@@ -83,3 +83,14 @@ export async function unblockSession(sessionId: string): Promise<any> {
   });
   return handleResponse(res, "unblock session");
 }
+
+export async function fetchDashboardShowcase(): Promise<any> {
+  const res = await fetch(`${BASE_URL}/dashboard-showcase`);
+  return handleResponse(res, "fetch dashboard showcase");
+}
+
+export async function fetchDoraReport(sessionId: string): Promise<any> {
+  const res = await fetch(`${BASE_URL}/session/${encodeURIComponent(sessionId)}/dora-report`);
+  return handleResponse(res, "fetch DORA report");
+}
+

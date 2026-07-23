@@ -42,11 +42,13 @@ import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ShieldIcon from "@mui/icons-material/Shield";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import SmartButtonIcon from "@mui/icons-material/SmartButton";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 
 import theme from "./theme/theme";
+import RiskEngineShowcase from "./components/RiskEngineShowcase";
+import DoraReportModal from "./components/DoraReportModal";
 import {
   fetchTelemetryMetrics,
   fetchAllSessions,
@@ -85,6 +87,15 @@ function AdminDashboard() {
   // Filtering State
   const [riskFilter, setRiskFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // DORA Report State
+  const [doraSessionId, setDoraSessionId] = useState<string | null>(null);
+  const [doraOpen, setDoraOpen] = useState<boolean>(false);
+
+  const handleOpenDoraReport = (sessionId: string) => {
+    setDoraSessionId(sessionId);
+    setDoraOpen(true);
+  };
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -183,7 +194,7 @@ function AdminDashboard() {
   };
 
   // Predefined Simulation Runners
-  const runSimulation = async (scenario: "normal" | "bot" | "ato") => {
+  const runSimulation = async (scenario: "normal" | "bot" | "ato" | "moderate" | "hesitation") => {
     const simSessionId = `session_sim_${scenario}_${Math.floor(1000 + Math.random() * 9000)}`;
     const now = Date.now();
     let events: any[] = [];
@@ -195,6 +206,14 @@ function AdminDashboard() {
         { userId: "john@vault.bank", action: "VIEW_TRANSACTIONS", ts: now - 4000, dwellFromPrevMs: 2000 },
         { userId: "john@vault.bank", action: "VIEW_SEND_MONEY", ts: now - 2000, dwellFromPrevMs: 2000 },
         { userId: "john@vault.bank", action: "TRANSFER", ts: now, dwellFromPrevMs: 2000, metadata: { amount: "100.00", recipientName: "Sarah Johnson", accountNumber: "7834019256" } }
+      ];
+    } else if (scenario === "moderate") {
+      events = [
+        { userId: "john@vault.bank", action: "LOGIN", ts: now - 12000, dwellFromPrevMs: 0, metadata: { username: "john@vault.bank", newDevice: false, newLocation: false } },
+        { userId: "john@vault.bank", action: "VIEW_SETTINGS", ts: now - 9000, dwellFromPrevMs: 3000 },
+        { userId: "john@vault.bank", action: "TOGGLE_TRANSACTION_ALERTS", ts: now - 6000, dwellFromPrevMs: 3000, metadata: { enabled: false } },
+        { userId: "john@vault.bank", action: "VIEW_SEND_MONEY", ts: now - 3000, dwellFromPrevMs: 3000 },
+        { userId: "john@vault.bank", action: "TRANSFER", ts: now, dwellFromPrevMs: 3000, metadata: { amount: "2500.00", recipientName: "Alex Vance", accountNumber: "4421092837" } }
       ];
     } else if (scenario === "bot") {
       events = [
@@ -216,6 +235,29 @@ function AdminDashboard() {
         },
         { userId: "attacker@evil.com", action: "VIEW_AUDIT_LOGS", ts: now - 2500, dwellFromPrevMs: 500 },
         { userId: "attacker@evil.com", action: "BULK_DOWNLOAD", ts: now, dwellFromPrevMs: 2500, metadata: { recordCount: 150 } }
+      ];
+    } else if (scenario === "hesitation") {
+      events = [
+        { userId: "john@vault.bank", action: "LOGIN", ts: now - 10000, dwellFromPrevMs: 0, metadata: { username: "john@vault.bank", newDevice: false, newLocation: false } },
+        {
+          userId: "john@vault.bank",
+          action: "KEYSTROKE_DYNAMICS",
+          ts: now - 5000,
+          dwellFromPrevMs: 5000,
+          metadata: {
+            schemaVersion: 1,
+            inputMethod: "physical-keyboard",
+            isHesitating: true,
+            scenario: "hesitation",
+            dwell: { mean: 120, stdDev: 45 },
+            flight: { mean: 2200, stdDev: 350 },
+            errorsAndPauses: { backspaceRate: 0.35, longestPause: 2800 },
+            totalKeystrokes: 18,
+            typingSpeed: 1.8
+          }
+        },
+        { userId: "john@vault.bank", action: "VIEW_SEND_MONEY", ts: now - 2000, dwellFromPrevMs: 3000 },
+        { userId: "john@vault.bank", action: "TRANSFER", ts: now, dwellFromPrevMs: 2000, metadata: { amount: "1200.00", recipientName: "David Miller", accountNumber: "3319028471" } }
       ];
     } else if (scenario === "ato") {
       events = [
@@ -285,7 +327,19 @@ function AdminDashboard() {
               sx={{ bgcolor: "primary.main", color: "common.white", fontWeight: 600, ml: 2, height: 20, fontSize: 11 }}
             />
           </Box>
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<DescriptionIcon />}
+              onClick={() => {
+                const latest = sessions[0]?.session_id || "latest_session";
+                handleOpenDoraReport(latest);
+              }}
+              sx={{ textTransform: "none", fontWeight: 700 }}
+            >
+              DORA Regulatory Report
+            </Button>
             <Button
               variant="outlined"
               color="inherit"
@@ -306,6 +360,7 @@ function AdminDashboard() {
           <Tab label="Threat Intelligence & Simulator" sx={{ py: 2, textTransform: "none", fontWeight: 600, fontSize: 15 }} />
           <Tab label="Active Sessions Log" sx={{ py: 2, textTransform: "none", fontWeight: 600, fontSize: 15 }} />
           <Tab label="Security Escalation Audits" sx={{ py: 2, textTransform: "none", fontWeight: 600, fontSize: 15 }} />
+          <Tab label="Risk Engine Showcase" sx={{ py: 2, textTransform: "none", fontWeight: 600, fontSize: 15 }} />
         </Tabs>
       </Box>
 
@@ -445,7 +500,7 @@ function AdminDashboard() {
                 <Grid size={{ xs: 12 }}>
                   <Paper variant="outlined" sx={{ p: 3, border: `1px dashed ${theme.palette.primary.main}` }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                      <SmartButtonIcon color="primary" />
+                      <DescriptionIcon color="primary" />
                       Live Attack Simulator
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -453,7 +508,7 @@ function AdminDashboard() {
                     </Typography>
 
                     <Grid container spacing={3}>
-                      <Grid size={{ xs: 12, md: 4 }}>
+                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <Card variant="outlined" sx={{ bgcolor: "grey.50" }}>
                           <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                             <Typography variant="subtitle1" fontWeight={700} color="success.main">
@@ -474,14 +529,35 @@ function AdminDashboard() {
                         </Card>
                       </Grid>
 
-                      <Grid size={{ xs: 12, md: 4 }}>
+                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        <Card variant="outlined" sx={{ bgcolor: "grey.50" }}>
+                          <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                            <Typography variant="subtitle1" fontWeight={700} color="warning.main">
+                              2. Moderate Risk (2FA)
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" fontSize={13} sx={{ minHeight: 60 }}>
+                              Simulates disabling transaction alerts before sending a $2,500 transfer (~65% risk score). Triggers mandatory 2FA challenge on Client UI.
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              color="warning"
+                              startIcon={<PlayArrowIcon />}
+                              onClick={() => runSimulation("moderate")}
+                            >
+                              Inject 2FA Scenario
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <Card variant="outlined" sx={{ bgcolor: "grey.50" }}>
                           <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                             <Typography variant="subtitle1" fontWeight={700} color="warning.dark">
-                              2. Account Takeover Chain
+                              3. ATO Chain (High Risk)
                             </Typography>
                             <Typography variant="body2" color="text.secondary" fontSize={13} sx={{ minHeight: 60 }}>
-                              Simulates a new device login, direct navigation to settings, immediate password/email change, adding a payee, and running a $4,950 maximum transfer.
+                              Simulates new device login, direct navigation, password/email change, adding a payee, and $4,950 max transfer (triggers immediate logout).
                             </Typography>
                             <Button
                               variant="outlined"
@@ -495,14 +571,14 @@ function AdminDashboard() {
                         </Card>
                       </Grid>
 
-                      <Grid size={{ xs: 12, md: 4 }}>
+                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <Card variant="outlined" sx={{ bgcolor: "grey.50" }}>
                           <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                             <Typography variant="subtitle1" fontWeight={700} color="error.main">
-                              3. Keystroke Bot Scraping
+                              4. Bot Keystroke Scraping
                             </Typography>
                             <Typography variant="body2" color="text.secondary" fontSize={13} sx={{ minHeight: 60 }}>
-                              Simulates super-human typing speed (22 chars/sec, 8ms key press) combined with navigating to audit logs and downloading bulk records (triggers auto-block).
+                              Simulates super-human typing speed (22 chars/sec, 8ms key press) combined with navigating to audit logs and downloading bulk records.
                             </Typography>
                             <Button
                               variant="outlined"
@@ -515,7 +591,126 @@ function AdminDashboard() {
                           </CardContent>
                         </Card>
                       </Grid>
+
+                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                        <Card variant="outlined" sx={{ bgcolor: "grey.50" }}>
+                          <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                            <Typography variant="subtitle1" fontWeight={700} color="secondary.main">
+                              5. Keystroke Hesitation (2FA)
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" fontSize={13} sx={{ minHeight: 60 }}>
+                              Simulates long pauses (2,800ms) and 35% backspaces during input (~62% risk score). Triggers 2FA Step-up OTP dialog (`123456`).
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              color="secondary"
+                              startIcon={<PlayArrowIcon />}
+                              onClick={() => runSimulation("hesitation")}
+                            >
+                              Inject Hesitation 2FA
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Grid>
                     </Grid>
+                  </Paper>
+                </Grid>
+
+                {/* Monitored Sessions Quick Actions Table on Tab 0 */}
+                <Grid size={{ xs: 12 }}>
+                  <Paper variant="outlined" sx={{ p: 3 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
+                        <EventNoteIcon color="primary" />
+                        Active Monitored Sessions & Quick Actions
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Showing {sessions.slice(0, 5).length} most recent sessions
+                      </Typography>
+                    </Box>
+
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 700 }}>User ID</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Session Reference</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Threat Risk Score</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Anomalies Flagged</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                            <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Analyst Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {sessions.slice(0, 5).map((session) => (
+                            <TableRow key={session.session_id} hover>
+                              <TableCell sx={{ fontWeight: 600 }}>{session.user_id}</TableCell>
+                              <TableCell sx={{ fontFamily: "monospace", fontSize: 12 }}>
+                                {session.session_id}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={`${session.risk_score}% (${session.risk_level})`}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: getRiskBg(session.risk_score),
+                                    color: getRiskColor(session.risk_score),
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {session.anomalies && session.anomalies.length > 0 ? (
+                                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                    {session.anomalies.map((anom) => (
+                                      <Chip key={anom} label={anom} size="small" color="error" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
+                                    ))}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">None</Typography>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {session.is_blocked ? (
+                                  <Chip icon={<BlockIcon />} label="Blocked" size="small" color="error" sx={{ fontWeight: 600 }} />
+                                ) : (
+                                  <Chip icon={<CheckCircleIcon />} label="Active" size="small" color="success" variant="outlined" sx={{ fontWeight: 600 }} />
+                                )}
+                              </TableCell>
+                              <TableCell sx={{ textAlign: "right" }}>
+                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<VisibilityIcon />}
+                                    onClick={() => handleInspectSession(session)}
+                                  >
+                                    Inspect
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="secondary"
+                                    startIcon={<DescriptionIcon />}
+                                    onClick={() => handleOpenDoraReport(session.session_id)}
+                                  >
+                                    DORA Report
+                                  </Button>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+
+                          {sessions.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={6} sx={{ textAlign: "center", py: 4 }}>
+                                <Typography color="text.secondary">No active sessions logged. Click any simulator button above to inject telemetry.</Typography>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </Paper>
                 </Grid>
               </Grid>
@@ -640,14 +835,24 @@ function AdminDashboard() {
                                   Block
                                 </Button>
                               )}
-                              <IconButton
-                                color="primary"
+                              <Button
                                 size="small"
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<VisibilityIcon />}
                                 onClick={() => handleInspectSession(session)}
-                                title="Inspect events timeline"
                               >
-                                <VisibilityIcon />
-                              </IconButton>
+                                Inspect
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="secondary"
+                                startIcon={<DescriptionIcon />}
+                                onClick={() => handleOpenDoraReport(session.session_id)}
+                              >
+                                DORA Report
+                              </Button>
                             </Box>
                           </TableCell>
                         </TableRow>
@@ -708,18 +913,28 @@ function AdminDashboard() {
                             />
                           </TableCell>
                           <TableCell sx={{ textAlign: "right" }}>
-                            {inc.status !== "RESOLVED" ? (
-                              <Button
+                            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", alignItems: "center" }}>
+                              {inc.status !== "RESOLVED" ? (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  onClick={() => handleResolveIncident(inc.id)}
+                                >
+                                  Resolve Audit
+                                </Button>
+                              ) : (
+                                <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>Closed</Typography>
+                              )}
+                              <IconButton
+                                color="secondary"
                                 size="small"
-                                variant="contained"
-                                color="success"
-                                onClick={() => handleResolveIncident(inc.id)}
+                                onClick={() => handleOpenDoraReport(inc.session_id)}
+                                title="Generate DORA Compliance Report"
                               >
-                                Resolve Audit
-                              </Button>
-                            ) : (
-                              <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>Closed</Typography>
-                            )}
+                                <DescriptionIcon />
+                              </IconButton>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -736,6 +951,9 @@ function AdminDashboard() {
                 </TableContainer>
               </Paper>
             )}
+
+            {/* TAB 3: RISK ENGINE SHOWCASE */}
+            {tabIndex === 3 && <RiskEngineShowcase />}
           </>
         )}
       </Box>
@@ -804,13 +1022,32 @@ function AdminDashboard() {
                 </Box>
               )}
 
-              <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>
+              {/* Analyst Threat Cause & Resolution Guide */}
+              <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "background.paper", border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
+                <Typography variant="caption" color="error.main" fontWeight={700} sx={{ display: "block", mb: 0.5 }}>
+                  🔴 WHY RISK OCCURRED:
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  {inspectSession.recommendation || inspectSession.action_taken || "Behavioral anomaly sequence detected."}
+                </Typography>
+
+                <Typography variant="caption" color="success.main" fontWeight={700} sx={{ display: "block", mb: 0.5 }}>
+                  🟢 ANALYST RESOLUTION POINTS:
+                </Typography>
+                <Typography variant="caption" color="text.primary" component="div">
+                  1. Step-Up 2FA: {inspectSession.risk_score >= 40 && inspectSession.risk_score < 80 ? "Enforce / Verify 2FA authentication code." : "Verified / Not required."}<br />
+                  2. Guardrails: Confirm transaction alerts are enabled in settings.<br />
+                  3. Out-of-Band: Contact customer if risk score &ge; 70% before unblocking.
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 1, mt: 1.5, flexWrap: "wrap" }}>
                 {inspectSession.is_blocked ? (
                   <Button
                     variant="contained"
                     color="success"
-                    fullWidth
                     size="small"
+                    sx={{ flex: 1 }}
                     onClick={() => handleUnblockOverride(inspectSession.session_id)}
                   >
                     Unblock Session
@@ -819,13 +1056,22 @@ function AdminDashboard() {
                   <Button
                     variant="contained"
                     color="error"
-                    fullWidth
                     size="small"
+                    sx={{ flex: 1 }}
                     onClick={() => handleBlockOverride(inspectSession.session_id)}
                   >
                     Block & Terminate Session
                   </Button>
                 )}
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  size="small"
+                  startIcon={<DescriptionIcon />}
+                  onClick={() => handleOpenDoraReport(inspectSession.session_id)}
+                >
+                  Generate DORA Report
+                </Button>
               </Box>
             </Box>
 
@@ -894,6 +1140,13 @@ function AdminDashboard() {
           </>
         )}
       </Drawer>
+
+      {/* DORA REGULATORY REPORT MODAL */}
+      <DoraReportModal
+        open={doraOpen}
+        sessionId={doraSessionId}
+        onClose={() => setDoraOpen(false)}
+      />
     </Box>
   );
 }

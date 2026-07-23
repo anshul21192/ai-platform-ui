@@ -5,3 +5,4 @@ python-dotenv>=1.0.0
 SQLAlchemy>=2.0.0
 openai>=1.0.0
 google-cloud-aiplatform>=1.42.0
+twilio>=9.0.0

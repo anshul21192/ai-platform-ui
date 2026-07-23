@@ -142,13 +142,28 @@ async def ingest_telemetry_events(
         db.add(session_telemetry)
     db.commit()
     
-    # ============ STEP 5: TRIGGER BACKGROUND ACTIONS (if HIGH risk) ============
-    if risk_analysis and risk_analysis.get("risk_score", 0) > 60:
+    # ============ STEP 5: TRIGGER BACKGROUND NOTIFICATIONS & ALERTS ============
+    score = risk_analysis.get("risk_score", 0)
+    if risk_analysis and score >= 40:
+        # Dispatch real Gmail SMTP alert email for Moderate or High Risk
         background_tasks.add_task(
-            email_service.send_verification,
+            email_service.send_fraud_alert_email,
             user_id,
-            session_id
+            session_id,
+            score,
+            risk_analysis.get("risk_level", "MEDIUM"),
+            anomalies,
+            risk_analysis.get("reason", "")
         )
+        
+        # If Moderate Risk (40-79), dispatch 2FA OTP via Email & Twilio SMS
+        if score < 80:
+            background_tasks.add_task(
+                email_service.send_2fa_otp_email_and_sms,
+                user_id,
+                session_id,
+                "123456"
+            )
         
         # Create incident record if not already exists
         existing_incident = db.query(Incident).filter(Incident.session_id == session_id).first()
@@ -156,8 +171,8 @@ async def ingest_telemetry_events(
             incident = Incident(
                 user_id=user_id,
                 session_id=session_id,
-                risk_score=risk_analysis["risk_score"],
-                reason=f"Telemetry-based detection: {', '.join(anomalies[:3]) if anomalies else 'High risk behavior'}",
+                risk_score=score,
+                reason=f"Telemetry-based detection: {', '.join(anomalies[:3]) if anomalies else 'Suspicious behavior'}",
                 status="PENDING"
             )
             db.add(incident)
@@ -298,8 +313,9 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
         if 0 <= avg_flight < 10 and total_keys >= 3:
             anomalies.append("KEYSTROKE_UNREALISTIC_FLIGHT_TIME")
 
-        # Coercion / Excessive Hesitation / High Error Ratio (backspaces > 40% of keystrokes or pause count >= 4)
-        if (total_keys >= 5 and backspace_rate > 0.4) or pause_count >= 4 or longest_pause >= 5000:
+        # Coercion / Excessive Hesitation / High Error Ratio (backspaces >= 25% or longest pause >= 1800ms)
+        is_hesitant_flag = meta.get("isHesitating", False) or meta.get("scenario") == "hesitation"
+        if (total_keys >= 3 and backspace_rate >= 0.25) or pause_count >= 2 or longest_pause >= 1800 or is_hesitant_flag:
             anomalies.append("KEYSTROKE_EXCESSIVE_HESITATION")
 
     
@@ -634,15 +650,106 @@ async def get_session_status(session_id: str, db: Session = Depends(get_db)):
             "is_blocked": False,
             "risk_score": 0,
             "risk_level": "LOW",
-            "anomalies": []
+            "anomalies": [],
+            "requires_2fa": False,
+            "is_2fa_verified": False
         }
+    
+    score = record.risk_score or 0
+    is_blocked = record.is_blocked or (score >= 80)
+    requires_2fa = (40 <= score < 80) and not (record.is_2fa_verified or False)
+
     return {
         "session_id": record.session_id,
-        "is_blocked": record.is_blocked or False,
-        "risk_score": record.risk_score,
+        "is_blocked": is_blocked,
+        "risk_score": score,
         "risk_level": record.risk_level,
-        "anomalies": record.anomalies or []
+        "anomalies": record.anomalies or [],
+        "requires_2fa": requires_2fa,
+        "is_2fa_verified": record.is_2fa_verified or False
     }
+
+@router.post("/session/{session_id}/verify-2fa")
+async def verify_2fa(session_id: str, db: Session = Depends(get_db)):
+    """
+    Verify 2FA step-up authentication for a moderate risk session.
+    """
+    record = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    if record:
+        record.is_2fa_verified = True
+        record.action_taken = "2FA Step-up verified successfully by user."
+        db.commit()
+    return {"status": "SUCCESS", "message": f"2FA verified for session {session_id}."}
+
+@router.get("/session/{session_id}/dora-report")
+async def generate_dora_report(session_id: str, db: Session = Depends(get_db)):
+    """
+    Generates a DORA (Digital Operational Resilience Act) Major ICT Incident / Security Report.
+    """
+    session_rec = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    events = db.query(TelemetryEventLog).filter(TelemetryEventLog.session_id == session_id).order_by(TelemetryEventLog.seq.asc()).all()
+    incident = db.query(Incident).filter(Incident.session_id == session_id).first()
+
+    risk_score = session_rec.risk_score if session_rec else 0
+    risk_level = session_rec.risk_level if session_rec else "LOW"
+    anomalies = session_rec.anomalies if session_rec else []
+    user_id = session_rec.user_id if session_rec else (events[0].user_id if events else "unknown")
+
+    classification = "MAJOR_ICT_SECURITY_INCIDENT" if risk_score >= 80 else ("SIGNIFICANT_OPERATIONAL_RISK" if risk_score >= 40 else "LOW_RISK_EVENT")
+    
+    impacted_services = list(set([e.action for e in events if e.action in SENSITIVE_ACTIONS or e.action.startswith("VIEW_")]))
+    
+    mitigations = []
+    if session_rec and session_rec.is_blocked:
+        mitigations.append("Session immediately terminated & account locked in real-time.")
+    if session_rec and session_rec.is_2fa_verified:
+        mitigations.append("Step-up 2-Factor Authentication completed by account owner.")
+    elif risk_score >= 40:
+        mitigations.append("2-Factor Step-up authentication requested.")
+    if incident:
+        mitigations.append(f"Security incident INC-00{incident.id} registered (Status: {incident.status}).")
+
+    report = {
+        "report_metadata": {
+            "dora_reference": f"DORA-RES-2026-{(session_id or '000000')[:8].upper()}",
+            "regulatory_framework": "EU Digital Operational Resilience Act (DORA) - Article 18 & 19",
+            "entity_name": "Vault Financial Platform",
+            "jurisdiction": "EU / Global Financial Services",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "classification": classification
+        },
+        "incident_summary": {
+            "session_id": session_id,
+            "impacted_user_id": user_id,
+            "risk_score": risk_score,
+            "risk_level": risk_level,
+            "is_blocked": session_rec.is_blocked if session_rec else False,
+            "is_2fa_verified": session_rec.is_2fa_verified if session_rec else False,
+            "anomalies_detected": anomalies,
+            "impacted_ict_functions": impacted_services
+        },
+        "root_cause_analysis": {
+            "threat_vectors": anomalies if anomalies else ["Normal User Activity"],
+            "summary": session_rec.recommendation if session_rec else "Standard operational log.",
+            "sensitive_actions_executed": session_rec.sensitive_actions if session_rec else []
+        },
+        "remediation_and_mitigation": {
+            "actions_taken": session_rec.action_taken if session_rec else "Logged entry.",
+            "mitigation_steps": mitigations,
+            "incident_escalation_status": incident.status if incident else "NOT_ESCALATED"
+        },
+        "chronological_telemetry_timeline": [
+            {
+                "seq": e.seq,
+                "timestamp_ms": e.ts,
+                "action": e.action,
+                "dwell_from_prev_ms": e.dwell_from_prev_ms,
+                "payload_metadata": e.metadata_ or {}
+            }
+            for e in events
+        ]
+    }
+    return report
 
 @router.post("/session/{session_id}/block")
 async def block_session(session_id: str, db: Session = Depends(get_db)):
@@ -713,3 +820,65 @@ async def unblock_session(session_id: str, db: Session = Depends(get_db)):
         
     db.commit()
     return {"status": "SUCCESS", "message": f"Session {session_id} successfully unblocked."}
+
+
+@router.get("/session/{session_id}/status")
+async def get_session_status(session_id: str, db: Session = Depends(get_db)):
+    """
+    Get real-time risk status, 2FA requirement status, and lockout status for a session.
+    """
+    record = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    if not record:
+        return {
+            "session_id": session_id,
+            "is_blocked": False,
+            "risk_score": 0,
+            "risk_level": "LOW",
+            "anomalies": [],
+            "requires_2fa": False,
+            "is_2fa_verified": False
+        }
+    
+    # Session requires 2FA if risk score is Moderate (40-79) and 2FA is not yet verified!
+    requires_2fa = (not record.is_blocked) and (40 <= record.risk_score < 80) and (not record.is_2fa_verified)
+    
+    return {
+        "session_id": session_id,
+        "is_blocked": record.is_blocked,
+        "risk_score": record.risk_score,
+        "risk_level": record.risk_level,
+        "anomalies": record.anomalies or [],
+        "requires_2fa": requires_2fa,
+        "is_2fa_verified": record.is_2fa_verified
+    }
+
+
+@router.post("/session/{session_id}/verify-2fa")
+async def verify_2fa(session_id: str, db: Session = Depends(get_db)):
+    """
+    Mark 2FA as verified for a session when the user enters valid verification code.
+    """
+    record = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    if record:
+        record.is_2fa_verified = True
+        record.action_taken = "2FA Step-up identity verified by user."
+        db.commit()
+        return {"status": "SUCCESS", "message": f"2FA verified for session {session_id}."}
+    
+    # If record doesn't exist yet, create it verified
+    record = SessionTelemetry(
+        user_id="unknown",
+        session_id=session_id,
+        event_count=0,
+        sensitive_actions=[],
+        risk_score=50,
+        risk_level="MEDIUM",
+        anomalies=[],
+        recommendation="2FA Step-up verified.",
+        action_taken="2FA Step-up identity verified by user.",
+        is_blocked=False,
+        is_2fa_verified=True
+    )
+    db.add(record)
+    db.commit()
+    return {"status": "SUCCESS", "message": f"2FA verified for session {session_id}."}

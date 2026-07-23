@@ -3,6 +3,7 @@ import { authenticate, createSessionId, type AuthUser } from "../utils/auth";
 import { setSession, clearSession, trackEvent, flush, clearEvents } from "../utils/eventLogger";
 import { sendKeystrokeMetrics } from "../api/keystrokeAnalysis";
 import BlockedScreen from "../components/BlockedScreen";
+import TwoFactorModal from "../components/TwoFactorModal";
 
 const SESSION_KEY = "vault_bank_session";
 const MAX_FAILED_ATTEMPTS = 3;
@@ -21,6 +22,7 @@ interface AuthContextValue {
   username: string | null;
   sessionId: string | null;
   isAuthenticated: boolean;
+  requiresTwoFactor: boolean;
   loginError: string | null;
   login: (username: string, password: string, newDevice: boolean, newLocation: boolean, keystrokeMetrics?: object, fingerprintData?: Record<string, unknown> | null) => boolean;
   logout: () => void;
@@ -99,9 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendKeystrokeMetrics(keystrokeMetrics);
       }
 
-      if (newDevice || newLocation) {
-        flush();
-      }
+      flush();
 
       return true;
     },
@@ -126,11 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     anomalies?: string[];
   } | null>(null);
 
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [twoFactorRiskScore, setTwoFactorRiskScore] = useState(50);
+
   // Poll block status and listen for telemetry block events
   useEffect(() => {
     if (!session?.sessionId) {
       setIsBlocked(false);
       setBlockDetails(null);
+      setRequiresTwoFactor(false);
       return;
     }
 
@@ -147,6 +151,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             setIsBlocked(false);
             setBlockDetails(null);
+            if (data.requires_2fa) {
+              setRequiresTwoFactor(true);
+              setTwoFactorRiskScore(data.risk_score || 55);
+            } else {
+              setRequiresTwoFactor(false);
+            }
           }
         }
       } catch (err) {
@@ -160,7 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up polling every 3 seconds
     const interval = setInterval(checkBlockStatus, 3000);
 
-    // Also listen for real-time events triggered by the telemetry flush
     const handleBlockedEvent = (e: Event) => {
       const risk = (e as CustomEvent).detail || {};
       const score = risk.risk_score || risk.riskScore || 85;
@@ -170,11 +179,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout();
     };
 
+    const handleStepUp2FAEvent = (e: Event) => {
+      const risk = (e as CustomEvent).detail || {};
+      const score = risk.risk_score || risk.riskScore || 55;
+      setRequiresTwoFactor(true);
+      setTwoFactorRiskScore(score);
+    };
+
     window.addEventListener("vault-session-blocked", handleBlockedEvent);
+    window.addEventListener("vault-step-up-2fa", handleStepUp2FAEvent);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("vault-session-blocked", handleBlockedEvent);
+      window.removeEventListener("vault-step-up-2fa", handleStepUp2FAEvent);
     };
   }, [session]);
 
@@ -184,6 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: session?.user.username ?? null,
     sessionId: session?.sessionId ?? null,
     isAuthenticated: session !== null,
+    requiresTwoFactor,
     loginError,
     login,
     logout,
@@ -200,6 +219,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           reason={blockDetails?.reason}
           anomalies={blockDetails?.anomalies}
           onLogout={logout}
+        />
+      )}
+      {requiresTwoFactor && session && (
+        <TwoFactorModal
+          open={requiresTwoFactor}
+          sessionId={session.sessionId}
+          riskScore={twoFactorRiskScore}
+          onVerified={() => setRequiresTwoFactor(false)}
+          onCancel={logout}
         />
       )}
       {children}

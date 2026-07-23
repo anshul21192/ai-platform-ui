@@ -176,11 +176,16 @@ Respond in STRICT JSON format:
         has_bulk_download = any("BULK_OPERATION" in a for a in anomalies)
         has_extreme_transfer = any("EXTREME_TRANSFER" in a for a in anomalies)
 
+        has_hesitation = any("KEYSTROKE_EXCESSIVE_HESITATION" in a for a in anomalies)
+
         if has_bot_speed or has_unrealistic_flight:
             risk_score = max(risk_score, 88)
             matched_patterns.append("Scripted / Bot Keystroke Dynamics")
+        if has_hesitation:
+            risk_score = max(risk_score, 62)  # MODERATE RISK: Triggers Step-Up 2FA OTP
+            matched_patterns.append("Keystroke Hesitation & Coercion Anomaly")
         if has_guardrail_removal:
-            risk_score = max(risk_score, 85)
+            risk_score = max(risk_score, 65)  # MODERATE RISK: Triggers Step-Up 2FA
             matched_patterns.append("Guardrail Removal + Transfer Attack")
         if has_payee_manipulation:
             risk_score = max(risk_score, 82)
@@ -192,7 +197,7 @@ Respond in STRICT JSON format:
             risk_score = max(risk_score, 82)
             matched_patterns.append("Bulk Data Extraction")
         if has_direct_route:
-            risk_score = max(risk_score, 75)
+            risk_score = max(risk_score, 55)  # MODERATE RISK: Triggers Step-Up 2FA
             matched_patterns.append("Navigation Anomaly (direct route access)")
         if has_extreme_transfer:
             risk_score = max(risk_score, 89)
