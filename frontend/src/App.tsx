@@ -12,11 +12,11 @@ import TransactionsPage from "./pages/TransactionsPage";
 import SendMoneyPage from "./pages/SendMoneyPage";
 import RequestMoneyPage from "./pages/RequestMoneyPage";
 import AuditLogsPage from "./pages/AuditLogsPage";
+import RiskDashboardPage from "./pages/RiskDashboardPage";
 import PageLayout from "./components/PageLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { BeneficiaryProvider } from "./contexts/BeneficiaryContext";
 import { logNavigation } from "./utils/eventLogger";
-import RiskDashboardPage from "./pages/RiskDashboardPage";
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {

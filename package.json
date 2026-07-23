@@ -1,0 +1,13 @@
+{
+  "name": "ai-platform-ui-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "dev": "concurrently --kill-others -n \"CLIENT,ADMIN,BACKEND\" -c \"blue,green,magenta\" \"pnpm --filter ai-platform-ui dev\" \"pnpm --filter admin-frontend dev\" \"pnpm dev:backend\"",
+    "install:all": "pnpm install && (cd backend && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt)"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

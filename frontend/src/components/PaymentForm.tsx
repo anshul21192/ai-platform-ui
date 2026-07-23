@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -9,6 +9,8 @@ import {
   Paper,
   MenuItem,
   Select,
+  Alert,
+  CircularProgress,
   type SelectChangeEvent,
   type SxProps,
   type Theme,
@@ -63,6 +65,7 @@ function getInitialBeneficiary(location: ReturnType<typeof useLocation>) {
 export default function PaymentForm({ config }: PaymentFormProps) {
   const { beneficiaries } = useBeneficiary();
   const location = useLocation();
+  const navigate = useNavigate();
   const initialBeneficiary = getInitialBeneficiary(location);
   const [selectedRecipient, setSelectedRecipient] = useState<number | null>(() => initialBeneficiary?.id ?? null);
   const [recipientName, setRecipientName] = useState(() => initialBeneficiary?.name ?? "");
@@ -70,6 +73,8 @@ export default function PaymentForm({ config }: PaymentFormProps) {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [note, setNote] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleRecipientSelect = (id: number) => {
     setSelectedRecipient(id);
@@ -86,7 +91,32 @@ export default function PaymentForm({ config }: PaymentFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber });
+    if (!amount || parseFloat(amount) <= 0) return;
+
+    setProcessing(true);
+    setSuccessMessage(null);
+
+    // Track the transaction event (which triggers an immediate telemetry flush)
+    trackEvent(config.submitAction, { amount, currency, recipientName, accountNumber, note });
+
+    // Wait 1.5s to let telemetry evaluate and allow the block overlay to hook in if malicious
+    setTimeout(() => {
+      // If the page hasn't been taken over by the block overlay, the user is safe!
+      setProcessing(false);
+      setSuccessMessage(`Transaction processed successfully! Sent $${amount} to ${recipientName}.`);
+      
+      // Reset form fields
+      setAmount("");
+      setNote("");
+      setSelectedRecipient(null);
+      setRecipientName("");
+      setAccountNumber("");
+
+      // Redirect back to overview after 3 seconds
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
+    }, 1500);
   };
 
   return (
@@ -108,6 +138,12 @@ export default function PaymentForm({ config }: PaymentFormProps) {
           {config.subtitle}
         </Typography>
       </Box>
+
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {successMessage}
+        </Alert>
+      )}
 
       {/* Cards row */}
       <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
@@ -345,7 +381,8 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                 type="submit"
                 variant="contained"
                 fullWidth
-                startIcon={config.actionIcon}
+                disabled={processing}
+                startIcon={processing ? <CircularProgress size={16} color="inherit" /> : config.actionIcon}
                 sx={{
                   color: "common.white",
                   height: 36,
@@ -355,7 +392,7 @@ export default function PaymentForm({ config }: PaymentFormProps) {
                   letterSpacing: "-0.1504px",
                 }}
               >
-                {config.actionLabel}
+                {processing ? "Processing..." : config.actionLabel}
               </Button>
             </Box>
           </Box>

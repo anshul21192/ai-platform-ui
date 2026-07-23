@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -17,21 +18,21 @@ class IncidentResponse(BaseModel):
 # ============ TELEMETRY EVENT SCHEMAS (UI Integration) ============
 class TelemetryEvent(BaseModel):
     """Individual event captured from the UI"""
-    userId: str
-    sessionId: str
-    seq: int
-    action: str
-    ts: int  # Unix timestamp in milliseconds
-    dwellFromPrevMs: int
-    metadata: Dict[str, Any]
+    userId: Optional[str] = "anonymous"
+    sessionId: Optional[str] = "unknown"
+    seq: Optional[int] = 0
+    action: Optional[str] = "UNKNOWN"
+    ts: Optional[int] = 0  # Unix timestamp in milliseconds
+    dwellFromPrevMs: Optional[int] = 0
+    metadata: Optional[Dict[str, Any]] = {}
 
     class Config:
         from_attributes = True
 
 class TelemetryFlushRequest(BaseModel):
     """Batch of events flushed from the UI"""
-    sessionId: str
-    events: List[TelemetryEvent]
+    sessionId: Optional[str] = "unknown"
+    events: List[TelemetryEvent] = []
 
 class TelemetryEventResponse(BaseModel):
     """Response after ingesting telemetry"""

@@ -40,5 +40,6 @@ class SessionTelemetry(Base):
     anomalies = Column(JSON)  # List of anomalies detected
     recommendation = Column(String)
     action_taken = Column(String)
+    is_blocked = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)

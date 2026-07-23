@@ -1,9 +1,21 @@
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
 from app.routers import verification, incidents, telemetry
-
+from app.seed import seed_db
+    
 Base.metadata.create_all(bind=engine)
+
+# Auto seed database on startup
+db = SessionLocal()
+try:
+    seed_db(db)
+except Exception as e:
+    print(f"Failed to seed database: {e}")
+finally:
+    db.close()
 
 app = FastAPI(
     title="Core Anomaly Analytics Hub",

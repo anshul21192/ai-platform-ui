@@ -48,8 +48,23 @@ const NAV_HISTORY_MAX = 15;
 
 let currentUserId: string | null = null;
 let currentSessionId: string | null = null;
+
+try {
+  const SESSION_KEY = "vault_bank_session";
+  const raw = sessionStorage.getItem(SESSION_KEY);
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.user && parsed.sessionId) {
+      currentUserId = parsed.user.username || parsed.user.userId;
+      currentSessionId = parsed.sessionId;
+    }
+  }
+} catch (e) {
+  console.error("Failed to restore session in eventLogger", e);
+}
+
 let seq = 0;
-let previousEventTs = 0;
+let previousEventTs = Date.now();
 let buffer: AppEvent[] = [];
 let onFlushCallback: ((events: AppEvent[]) => void) | null = null;
 let navHistory: string[] = [];
@@ -123,7 +138,17 @@ export function flush(): void {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, events: eventsToFlush }),
-    }).catch((err) => console.error("Failed to flush events to telemetry endpoint", err));
+    })
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error("Telemetry request failed");
+      })
+      .then((data) => {
+        if (data?.riskAssessment?.is_blocked) {
+          window.dispatchEvent(new CustomEvent("vault-session-blocked", { detail: data.riskAssessment }));
+        }
+      })
+      .catch((err) => console.error("Failed to flush events to telemetry endpoint", err));
   }
 
   onFlushCallback?.(eventsToFlush);

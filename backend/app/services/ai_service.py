@@ -1,5 +1,6 @@
 import os
 import json
+# pyrefly: ignore [missing-import]
 from openai import OpenAI
 from app.fraud_patterns import (
     SIGNAL_WEIGHTS, FRAUD_PATTERNS, RISK_BANDS, get_risk_band, 
@@ -141,27 +142,61 @@ Respond in STRICT JSON format:
         for anomaly in anomalies:
             if "BULK_OPERATION" in anomaly:
                 risk_score += SIGNAL_WEIGHTS["bulk_download_over_10x_baseline"]
-                matched_patterns.append("Data Exfiltration (bulk download)")
             elif "RAPID_SENSITIVE" in anomaly:
                 risk_score += SIGNAL_WEIGHTS["rapid_sensitive_action_sequence"]
                 matched_patterns.append("Rapid Sensitive Actions")
             elif "DIRECT_ROUTE" in anomaly:
                 risk_score += SIGNAL_WEIGHTS["direct_route_access"]
-                matched_patterns.append("Navigation Anomaly (direct route access)")
-            elif "UNAUTHORIZED_SETTING" in anomaly:
+            elif "GUARDRAIL_REMOVAL" in anomaly:
                 risk_score += SIGNAL_WEIGHTS["toggle_alerts_off_before_transfer"]
-                matched_patterns.append("Guardrail Removal")
+            elif "UNAUTHORIZED_SETTING" in anomaly:
+                risk_score += SIGNAL_WEIGHTS["credential_change_under_2min_after_login"]
+            elif "PAYEE_MANIPULATION" in anomaly:
+                risk_score += SIGNAL_WEIGHTS["edit_beneficiary_then_transfer"]
+            elif "RAPID_MULTIPLE" in anomaly:
+                risk_score += SIGNAL_WEIGHTS["multiple_add_payee_in_session"]
+            elif "BREADTH_RECONNAISSANCE" in anomaly:
+                risk_score += SIGNAL_WEIGHTS["audit_logs_breadth_access"]
             elif "KEYSTROKE_BOT_SPEED" in anomaly:
                 risk_score += SIGNAL_WEIGHTS.get("keystroke_bot_speed", 25)
-                matched_patterns.append("Scripted / Bot Keystroke Speed")
             elif "KEYSTROKE_UNREALISTIC_FLIGHT_TIME" in anomaly:
                 risk_score += SIGNAL_WEIGHTS.get("keystroke_unrealistic_flight_time", 20)
-                matched_patterns.append("Unrealistic Keystroke Flight Time")
             elif "KEYSTROKE_EXCESSIVE_HESITATION" in anomaly:
                 risk_score += SIGNAL_WEIGHTS.get("keystroke_excessive_hesitation", 15)
-                matched_patterns.append("Coerced / Erratic Keystroke Behavior")
             else:
                 risk_score += SIGNAL_WEIGHTS["abnormal_dwell_sensitive_screen"]
+        
+        # Override risk_score directly if severe fraud patterns are matched
+        has_guardrail_removal = any("GUARDRAIL_REMOVAL" in a for a in anomalies)
+        has_direct_route = any("DIRECT_ROUTE" in a for a in anomalies)
+        has_payee_manipulation = any("PAYEE_MANIPULATION" in a for a in anomalies)
+        has_rapid_payees = any("RAPID_MULTIPLE" in a for a in anomalies)
+        has_bot_speed = any("KEYSTROKE_BOT_SPEED" in a for a in anomalies)
+        has_unrealistic_flight = any("KEYSTROKE_UNREALISTIC_FLIGHT_TIME" in a for a in anomalies)
+        has_bulk_download = any("BULK_OPERATION" in a for a in anomalies)
+        has_extreme_transfer = any("EXTREME_TRANSFER" in a for a in anomalies)
+
+        if has_bot_speed or has_unrealistic_flight:
+            risk_score = max(risk_score, 88)
+            matched_patterns.append("Scripted / Bot Keystroke Dynamics")
+        if has_guardrail_removal:
+            risk_score = max(risk_score, 85)
+            matched_patterns.append("Guardrail Removal + Transfer Attack")
+        if has_payee_manipulation:
+            risk_score = max(risk_score, 82)
+            matched_patterns.append("Payee Hijack / Redirection")
+        if has_rapid_payees:
+            risk_score = max(risk_score, 82)
+            matched_patterns.append("Mule Network Fan-out")
+        if has_bulk_download:
+            risk_score = max(risk_score, 82)
+            matched_patterns.append("Bulk Data Extraction")
+        if has_direct_route:
+            risk_score = max(risk_score, 75)
+            matched_patterns.append("Navigation Anomaly (direct route access)")
+        if has_extreme_transfer:
+            risk_score = max(risk_score, 89)
+            matched_patterns.append("Extreme Transfer Amount (>=$5000)")
         
         # Session duration scoring
         session_duration_ms = telemetry_context.get('session_duration_ms', 0)

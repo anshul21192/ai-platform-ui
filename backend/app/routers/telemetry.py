@@ -1,6 +1,10 @@
+from typing import Optional
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, BackgroundTasks
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+# pyrefly: ignore [missing-import]
+from sqlalchemy import func         
 from datetime import datetime
 from app.database import get_db
 from app.models import TelemetryEventLog, SessionTelemetry, Incident
@@ -43,51 +47,99 @@ async def ingest_telemetry_events(
             eventsProcessed=0
         )
     
-    session_id = payload.sessionId
-    user_id = payload.events[0].userId  # Assume all events in batch are from same user
+    session_id = payload.sessionId or (payload.events[0].sessionId if payload.events and payload.events[0].sessionId else "unknown")
+    user_id = payload.events[0].userId if payload.events and payload.events[0].userId else "anonymous"
     
     # ============ STEP 1: PERSIST ALL EVENTS ============
     for event in payload.events:
         db_event = TelemetryEventLog(
-            user_id=event.userId,
-            session_id=event.sessionId,
-            seq=event.seq,
+            user_id=event.userId or user_id,
+            session_id=event.sessionId or session_id,
+            seq=event.seq or 0,
             action=event.action,
-            ts=event.ts,
-            dwell_from_prev_ms=event.dwellFromPrevMs,
-            metadata=event.metadata
+            ts=event.ts or int(datetime.utcnow().timestamp() * 1000),
+            dwell_from_prev_ms=event.dwellFromPrevMs or 0,
+            metadata_=event.metadata or {}
         )
         db.add(db_event)
     
     db.commit()
     
-    # ============ STEP 2: ANALYZE FOR ANOMALIES ============
-    anomalies = detect_anomalies(payload.events)
-    sensitive_actions_detected = [e.action for e in payload.events if e.action in SENSITIVE_ACTIONS]
+    # ============ STEP 2: ANALYZE FOR ANOMALIES (FULL SESSION HISTORY) ============
+    db_events = db.query(TelemetryEventLog).filter(TelemetryEventLog.session_id == session_id).order_by(TelemetryEventLog.seq.asc()).all()
+    
+    class SessionEventWrapper:
+        def __init__(self, action, seq, ts, dwellFromPrevMs, metadata, userId, sessionId):
+            self.action = action
+            self.seq = seq
+            self.ts = ts
+            self.dwellFromPrevMs = dwellFromPrevMs
+            self.metadata = metadata
+            self.userId = userId
+            self.sessionId = sessionId
+
+    all_session_events = [
+        SessionEventWrapper(
+            action=e.action,
+            seq=e.seq,
+            ts=e.ts,
+            dwellFromPrevMs=e.dwell_from_prev_ms,
+            metadata=e.metadata_ or {},
+            userId=e.user_id,
+            sessionId=e.session_id
+        )
+        for e in db_events
+    ]
+    
+    anomalies = detect_anomalies(all_session_events)
+    sensitive_actions_detected = [e.action for e in all_session_events if e.action in SENSITIVE_ACTIONS]
     
     # ============ STEP 3: RUN FRAUD DETECTION (UNCONDITIONAL) ============
     # Runs for all sessions so riskAssessment is never null
     risk_analysis = analyze_fraud_risk(
         user_id=user_id,
         session_id=session_id,
-        events=payload.events,
+        events=all_session_events,
         anomalies=anomalies,
         db=db
     )
     
     # ============ STEP 4: PERSIST SESSION TELEMETRY ============
-    session_telemetry = SessionTelemetry(
-        user_id=user_id,
-        session_id=session_id,
-        event_count=len(payload.events),
-        sensitive_actions=sensitive_actions_detected,
-        risk_score=risk_analysis.get("risk_score", 0),
-        risk_level=risk_analysis.get("risk_level", "LOW"),
-        anomalies=anomalies,
-        recommendation=risk_analysis.get("recommendation", "No action needed"),
-        action_taken=risk_analysis.get("action_taken", "Logged entry.")
-    )
-    db.merge(session_telemetry)
+    existing_session = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    was_blocked = existing_session.is_blocked if existing_session else False
+    is_blocked = was_blocked or (risk_analysis.get("risk_score", 0) > 80)
+    
+    if is_blocked:
+        risk_analysis["risk_level"] = "HIGH"
+        risk_analysis["risk_score"] = max(risk_analysis.get("risk_score", 0), 85)
+    
+    risk_analysis["is_blocked"] = is_blocked
+
+    if existing_session:
+        existing_session.user_id = user_id
+        existing_session.event_count = len(payload.events)
+        existing_session.sensitive_actions = sensitive_actions_detected
+        existing_session.risk_score = risk_analysis.get("risk_score", 0)
+        existing_session.risk_level = risk_analysis.get("risk_level", "LOW")
+        existing_session.anomalies = anomalies
+        existing_session.recommendation = risk_analysis.get("recommendation", "No action needed")
+        existing_session.action_taken = risk_analysis.get("action_taken", "Logged entry.")
+        existing_session.is_blocked = is_blocked
+        existing_session.updated_at = datetime.utcnow()
+    else:
+        session_telemetry = SessionTelemetry(
+            user_id=user_id,
+            session_id=session_id,
+            event_count=len(payload.events),
+            sensitive_actions=sensitive_actions_detected,
+            risk_score=risk_analysis.get("risk_score", 0),
+            risk_level=risk_analysis.get("risk_level", "LOW"),
+            anomalies=anomalies,
+            recommendation=risk_analysis.get("recommendation", "No action needed"),
+            action_taken=risk_analysis.get("action_taken", "Logged entry."),
+            is_blocked=is_blocked
+        )
+        db.add(session_telemetry)
     db.commit()
     
     # ============ STEP 5: TRIGGER BACKGROUND ACTIONS (if HIGH risk) ============
@@ -98,16 +150,18 @@ async def ingest_telemetry_events(
             session_id
         )
         
-        # Create incident record
-        incident = Incident(
-            user_id=user_id,
-            session_id=session_id,
-            risk_score=risk_analysis["risk_score"],
-            reason=f"Telemetry-based detection: {', '.join(anomalies[:3]) if anomalies else 'High risk behavior'}",
-            status="PENDING"
-        )
-        db.add(incident)
-        db.commit()
+        # Create incident record if not already exists
+        existing_incident = db.query(Incident).filter(Incident.session_id == session_id).first()
+        if not existing_incident:
+            incident = Incident(
+                user_id=user_id,
+                session_id=session_id,
+                risk_score=risk_analysis["risk_score"],
+                reason=f"Telemetry-based detection: {', '.join(anomalies[:3]) if anomalies else 'High risk behavior'}",
+                status="PENDING"
+            )
+            db.add(incident)
+            db.commit()
     
     return TelemetryEventResponse(
         status="ACCEPTED",
@@ -194,7 +248,16 @@ def detect_anomalies(events: list, user_id: str = None) -> list:
     if has_audit_logs and breadth_views > 4:
         anomalies.append("BREADTH_RECONNAISSANCE")
 
-
+    # ============ PATTERN 10: EXTREME TRANSFER AMOUNT ============
+    transfer_indices = [i for i, e in enumerate(events) if e.action == "TRANSFER"]
+    for t_idx in transfer_indices:
+        try:
+            amt = float(events[t_idx].metadata.get("amount", 0))
+            if amt >= 5000:
+                anomalies.append("EXTREME_TRANSFER_AMOUNT")
+                break
+        except (ValueError, TypeError):
+            pass
 
      # ============ PATTERN 9: KEYSTROKE DYNAMICS ANOMALIES ============
     keystroke_events = [
@@ -444,3 +507,209 @@ async def get_user_sessions(user_id: str, db: Session = Depends(get_db)):
         "sessionCount": len(sessions),
         "sessions": sessions
     }
+@router.get("/dashboard-showcase")
+def get_dashboard_showcase(db: Session = Depends(get_db)):
+    """
+    Returns full details about the fraud engine's backend: weights, typologies, baselines, and database statistics.
+    """
+    from app.fraud_patterns import SIGNAL_WEIGHTS, FRAUD_PATTERNS, BASELINES
+    
+    total_events = db.query(TelemetryEventLog).count()
+    total_sessions = db.query(SessionTelemetry).count()
+    total_blocked = db.query(SessionTelemetry).filter(SessionTelemetry.is_blocked == True).count()
+    total_incidents = db.query(Incident).count()
+    
+    return {
+        "engine": {
+            "name": "Antigravity Behavioral Fraud Engine",
+            "version": "2.0.0",
+            "type": "Rule-Based + LLM Hybrid Classifier",
+            "aiModel": "openai/gpt-4o-mini"
+        },
+        "stats": {
+            "totalIngestedEvents": total_events,
+            "totalSessionsMonitored": total_sessions,
+            "totalSessionsBlocked": total_blocked,
+            "totalEscalatedIncidents": total_incidents
+        },
+        "signalWeights": SIGNAL_WEIGHTS,
+        "fraudPatterns": FRAUD_PATTERNS,
+        "baselines": BASELINES
+    }
+
+
+@router.get("/all-sessions")
+async def get_all_sessions(limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Retrieve all recorded telemetry sessions across all users for Admin View.
+    """
+    sessions = db.query(SessionTelemetry).order_by(SessionTelemetry.created_at.desc()).limit(limit).all()
+    return {
+        "sessionCount": len(sessions),
+        "sessions": sessions
+    }
+
+
+@router.get("/all-events")
+async def get_all_events(
+    limit: int = 200,
+    session_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve logged telemetry events with optional filters for Admin View.
+    """
+    query = db.query(TelemetryEventLog)
+    if session_id:
+        query = query.filter(TelemetryEventLog.session_id == session_id)
+    if user_id:
+        query = query.filter(TelemetryEventLog.user_id == user_id)
+    if action:
+        query = query.filter(TelemetryEventLog.action == action)
+    
+    events = query.order_by(TelemetryEventLog.ts.desc()).limit(limit).all()
+    total_count = query.count()
+    
+    return {
+        "totalCount": total_count,
+        "eventCount": len(events),
+        "events": events
+    }
+
+
+@router.get("/metrics")
+async def get_telemetry_metrics(db: Session = Depends(get_db)):
+    """
+    Retrieve aggregated telemetry metrics and stats for Frontend Admin dashboard.
+    """
+    sessions = db.query(SessionTelemetry).all()
+    total_sessions = len(sessions)
+    total_events = db.query(TelemetryEventLog).count()
+    
+    high_risk = sum(1 for s in sessions if (s.risk_level or "").upper() == "HIGH")
+    medium_risk = sum(1 for s in sessions if (s.risk_level or "").upper() == "MEDIUM")
+    low_risk = sum(1 for s in sessions if (s.risk_level or "").upper() == "LOW")
+    
+    avg_score = (
+        round(sum(s.risk_score or 0 for s in sessions) / total_sessions, 1)
+        if total_sessions > 0
+        else 0
+    )
+    
+    anomaly_counts = {}
+    for s in sessions:
+        if s.anomalies and isinstance(s.anomalies, list):
+            for anomaly in s.anomalies:
+                anomaly_counts[anomaly] = anomaly_counts.get(anomaly, 0) + 1
+                
+    recent_sessions = (
+        db.query(SessionTelemetry)
+        .order_by(SessionTelemetry.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    
+    return {
+        "totalSessions": total_sessions,
+        "totalEvents": total_events,
+        "highRiskSessions": high_risk,
+        "mediumRiskSessions": medium_risk,
+        "lowRiskSessions": low_risk,
+        "averageRiskScore": avg_score,
+        "anomalyBreakdown": anomaly_counts,
+        "recentSessions": recent_sessions
+    }
+
+@router.get("/session/{session_id}/status")
+async def get_session_status(session_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve the blocking status and current risk of a session.
+    """
+    record = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    if not record:
+        return {
+            "session_id": session_id,
+            "is_blocked": False,
+            "risk_score": 0,
+            "risk_level": "LOW",
+            "anomalies": []
+        }
+    return {
+        "session_id": record.session_id,
+        "is_blocked": record.is_blocked or False,
+        "risk_score": record.risk_score,
+        "risk_level": record.risk_level,
+        "anomalies": record.anomalies or []
+    }
+
+@router.post("/session/{session_id}/block")
+async def block_session(session_id: str, db: Session = Depends(get_db)):
+    """
+    Manually override and block a session.
+    """
+    record = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    if not record:
+        record = SessionTelemetry(
+            user_id="unknown",
+            session_id=session_id,
+            event_count=0,
+            sensitive_actions=[],
+            risk_score=100,
+            risk_level="HIGH",
+            anomalies=["MANUAL_ADMIN_BLOCK"],
+            recommendation="Admin block override applied.",
+            action_taken="Blocked by admin.",
+            is_blocked=True
+        )
+        db.add(record)
+    else:
+        record.is_blocked = True
+        record.risk_score = 100
+        record.risk_level = "HIGH"
+        if not record.anomalies:
+            record.anomalies = []
+        if "MANUAL_ADMIN_BLOCK" not in record.anomalies:
+            record.anomalies = list(record.anomalies) + ["MANUAL_ADMIN_BLOCK"]
+    
+    # Also create/update incident
+    incident = db.query(Incident).filter(Incident.session_id == session_id).first()
+    if not incident:
+        incident = Incident(
+            user_id=record.user_id,
+            session_id=session_id,
+            risk_score=100,
+            reason="Blocked by administrator override.",
+            status="ESCALATED"
+        )
+        db.add(incident)
+    else:
+        incident.risk_score = 100
+        incident.reason = "Blocked by administrator override."
+        incident.status = "ESCALATED"
+        
+    db.commit()
+    return {"status": "SUCCESS", "message": f"Session {session_id} successfully blocked."}
+
+@router.post("/session/{session_id}/unblock")
+async def unblock_session(session_id: str, db: Session = Depends(get_db)):
+    """
+    Manually override and unblock a session.
+    """
+    record = db.query(SessionTelemetry).filter(SessionTelemetry.session_id == session_id).first()
+    if record:
+        record.is_blocked = False
+        record.risk_score = 0
+        record.risk_level = "LOW"
+        record.anomalies = []
+        record.recommendation = "Unblocked by admin."
+        record.action_taken = "Session reset."
+        
+    # Also update incident if any
+    incident = db.query(Incident).filter(Incident.session_id == session_id).first()
+    if incident:
+        incident.status = "RESOLVED"
+        
+    db.commit()
+    return {"status": "SUCCESS", "message": f"Session {session_id} successfully unblocked."}

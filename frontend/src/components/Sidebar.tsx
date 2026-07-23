@@ -17,6 +17,7 @@ import SavingsIcon from '@mui/icons-material/Savings';
 import MenuIcon from "@mui/icons-material/Menu";
 import HistoryIcon from "@mui/icons-material/History";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SecurityIcon from "@mui/icons-material/Security";
 import { trackEvent } from "../utils/eventLogger";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -25,7 +26,6 @@ const DRAWER_WIDTH = 256;
 const navItems = [
   { label: "Overview", icon: <DashboardIcon />, path: "/" },
   { label: "Transactions", icon: <SwapHorizIcon />, path: "/transactions" },
-  { label: "Risk Dashboard", icon: <BarChartIcon />, path: "/risk-dashboard" },
   { label: "Analytics", icon: <BarChartIcon />, path: "/analytics", disabled: true },
   {
     label: "Payments",
@@ -43,6 +43,7 @@ const navItems = [
   { label: "Quick Actions", icon: <BoltIcon />, expandable: true, path: "/quick-actions", disabled: true },
   { label: "Settings", icon: <SettingsIcon />, path: "/settings" },
   { label: "Event Logs", icon: <HistoryIcon />, path: "/audit-logs" },
+  { label: "Risk Showcase", icon: <SecurityIcon />, path: "/risk-dashboard" },
 ];
 
 interface SidebarProps {

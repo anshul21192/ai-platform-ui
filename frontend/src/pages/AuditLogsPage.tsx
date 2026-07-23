@@ -21,6 +21,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import SecurityIcon from "@mui/icons-material/Security";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import {
   getEvents,
   getBufferedEvents,
@@ -28,6 +29,7 @@ import {
   trackEvent,
   getSessionId,
   getUserId,
+  flush,
 } from "../utils/eventLogger";
 import type { AppEvent } from "../utils/eventLogger";
 
@@ -82,6 +84,11 @@ export default function AuditLogsPage() {
     trackEvent("VIEW_SEND_MONEY", { path: "/payments/send-money" });
     trackEvent("TRANSFER", { amount: 25000, currency: "USD", recipientName: "Offshore Account", accountNumber: "OFFSHORE-9988" });
     trackEvent("LOGOUT");
+    refreshLogs();
+  };
+
+  const handleFlush = () => {
+    flush();
     refreshLogs();
   };
 
@@ -172,6 +179,15 @@ export default function AuditLogsPage() {
                   Simulate Fraud Session
                 </Button>
                 <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<CloudUploadIcon />}
+                  onClick={handleFlush}
+                  sx={{ textTransform: "none" }}
+                >
+                  Flush to Backend DB
+                </Button>
+                <Button
                   variant="outlined"
                   color="error"
                   startIcon={<DeleteOutlineIcon />}
@@ -247,7 +263,7 @@ export default function AuditLogsPage() {
                           />
                         </TableCell>
                         <TableCell sx={{ fontFamily: "monospace", fontSize: 12, maxWidth: 300 }}>
-                          {Object.keys(event.metadata).length > 0
+                          {event.metadata && Object.keys(event.metadata).length > 0
                             ? JSON.stringify(event.metadata)
                             : "—"}
                         </TableCell>

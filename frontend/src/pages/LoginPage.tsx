@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -33,6 +33,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [newDevice, setNewDevice] = useState(false);
   const [newLocation, setNewLocation] = useState(false);
+  const fraudAlert = localStorage.getItem("fraud_logged_out") === "true";
+  const fraudRiskScore = localStorage.getItem("fraud_risk_score") || "85";
+
+  useEffect(() => {
+    if (localStorage.getItem("fraud_logged_out") === "true") {
+      localStorage.removeItem("fraud_logged_out");
+      localStorage.removeItem("fraud_risk_score");
+    }
+  }, []);
 
   const {
     containerRef,
@@ -333,6 +342,12 @@ export default function LoginPage() {
             {loginError && (
               <Alert severity="error" sx={{ mb: 2, fontSize: 14 }}>
                 {loginError}
+              </Alert>
+            )}
+
+            {fraudAlert && (
+              <Alert severity="error" sx={{ mb: 2, fontSize: 14, fontWeight: "bold", border: "1px solid red" }}>
+                SECURITY ALERT: Your previous session was terminated due to suspicious behavioral fraud activities. (Risk Score: {fraudRiskScore}%)
               </Alert>
             )}
 

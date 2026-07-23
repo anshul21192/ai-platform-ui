@@ -13,9 +13,15 @@ cd behaviour-anamaly-poc
 ```
 
 ### 2️⃣ Activate venv
+On macOS / Linux:
 ```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+On Windows:
+```cmd
 python -m venv venv
-venv\Scripts\activate 
+venv\Scripts\activate
 ```
 
 ### 2️⃣ Install Dependencies
@@ -59,7 +65,7 @@ gcloud auth application-default login
 
 ### 5️⃣ Run the Server
 ```bash
-python -m uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
 **Server is now running:**
