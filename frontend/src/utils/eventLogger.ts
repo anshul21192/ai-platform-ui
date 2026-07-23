@@ -118,8 +118,8 @@ export function trackEvent(
   return event;
 }
 
-export function flush(): void {
-  if (buffer.length === 0) return;
+export async function flushAsync(): Promise<any> {
+  if (buffer.length === 0) return null;
 
   const eventsToFlush = [...buffer];
   buffer = [];
@@ -134,24 +134,33 @@ export function flush(): void {
 
   if (currentSessionId || eventsToFlush.length > 0) {
     const sessionId = currentSessionId ?? eventsToFlush[0]?.sessionId ?? "unknown";
-    fetch(`/api/v1/fraud/telemetry/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, events: eventsToFlush }),
-    })
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error("Telemetry request failed");
-      })
-      .then((data) => {
+    try {
+      const res = await fetch(`/api/v1/fraud/telemetry/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, events: eventsToFlush }),
+      });
+      if (res.ok) {
+        const data = await res.json();
         if (data?.riskAssessment?.is_blocked) {
           window.dispatchEvent(new CustomEvent("vault-session-blocked", { detail: data.riskAssessment }));
+        } else if (data?.riskAssessment?.risk_score >= 40 && data?.riskAssessment?.risk_score < 80) {
+          window.dispatchEvent(new CustomEvent("vault-step-up-2fa", { detail: data.riskAssessment }));
         }
-      })
-      .catch((err) => console.error("Failed to flush events to telemetry endpoint", err));
+        onFlushCallback?.(eventsToFlush);
+        return data;
+      }
+    } catch (err) {
+      console.error("Failed to flush events to telemetry endpoint", err);
+    }
   }
 
   onFlushCallback?.(eventsToFlush);
+  return null;
+}
+
+export function flush(): void {
+  flushAsync();
 }
 
 export function getEvents(): AppEvent[] {
