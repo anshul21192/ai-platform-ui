@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,9 +13,11 @@ import {
   Switch,
   Divider,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { useVisitorData } from "@fingerprintjs/fingerprintjs-pro-react";
 import PersonIcon from '@mui/icons-material/Person';
 import Add from '@mui/icons-material/Add';
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
@@ -23,11 +25,15 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SavingsIcon from '@mui/icons-material/Savings';
 import LanguageIcon from "@mui/icons-material/Language";
 import { useAuth } from "../contexts/AuthContext";
-import { useKeystrokeDynamics } from "../hooks/useKeystrokeDynamics";
+import {useKeystrokeDynamics} from "../hooks/useKeystrokeDynamics";
+
+
 
 export default function LoginPage() {
   const { login, loginError, clearLoginError } = useAuth();
   const navigate = useNavigate();
+  const { getData } = useVisitorData();
+  
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +49,12 @@ export default function LoginPage() {
     }
   }, []);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fingerprintStatus, setFingerprintStatus] = useState<string | null>(null);
+  
+  // Check if fingerprint is enabled via env variable
+  const fingerprintEnabled = "bYcOv9gpXAX0S0wYP7eq";
+
   const {
     containerRef,
     getMetrics,
@@ -54,9 +66,61 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearLoginError();
+    setIsSubmitting(true);
+    setFingerprintStatus(fingerprintEnabled ? "Capturing browser fingerprint..." : "Fingerprinting is disabled. Set VITE_FINGERPRINT_PUBLIC_KEY to enable it.");
 
-    const currentMetrics = getMetrics();
+    let fingerprintData: Record<string, unknown> | null = null;
+    
+    if (fingerprintEnabled) {
+      try {
+        const fingerprintResult = await getData({
+          tag: { source: "vault-bank-login" },
+          linkedId: username.trim() || "guest",
+        });
+
+        const visitorData = (fingerprintResult as { data?: { visitorId?: string; confidence?: { score?: number }; ip?: string } } | undefined)?.data ?? (fingerprintResult as { visitorId?: string; confidence?: { score?: number }; ip?: string } | undefined);
+
+        fingerprintData = {
+          visitorId: visitorData?.visitorId ?? null,
+          confidence: visitorData?.confidence?.score ?? null,
+          ipAddress: visitorData?.ip ?? null,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          requestId: (fingerprintResult as { requestId?: string }).requestId ?? null,
+          userName: username.trim() || "guest",
+        };
+
+        console.log("Fingerprint data captured:", fingerprintData);
+
+        try {
+          const response = await fetch("http://localhost:8000/api/v1/fraud/telemetry/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: username.trim() || "guest",
+              ...fingerprintData,
+            }),
+          });
+
+          if (response.ok) {
+            console.log("Fingerprint data sent to backend successfully");
+          } else {
+            console.warn("Backend returned status:", response.status);
+          }
+        } catch (sendError) {
+          console.error("Unable to send fingerprint to backend", sendError);
+        }
+
+        setFingerprintStatus("Browser fingerprint captured for this login.");
+      } catch (error) {
+        console.error("Unable to capture login fingerprint", error);
+        setFingerprintStatus("Fingerprint capture failed. Continuing with standard login.");
+      }
+    }
+
+     const currentMetrics = getMetrics();
     console.log("Metrics before sending:", currentMetrics);
+
 
     try {
       const success = login(
@@ -67,11 +131,12 @@ export default function LoginPage() {
         currentMetrics
       );
 
-      resetMetrics();
+    resetMetrics();
+    setIsSubmitting(false);
 
-      if (success) {
-        navigate("/");
-      }
+    if (success) {
+      navigate("/");
+    }
     } catch (err) {
       console.error(err);
     }
@@ -351,11 +416,18 @@ export default function LoginPage() {
               </Alert>
             )}
 
+            {fingerprintStatus && (
+              <Alert severity={fingerprintStatus.includes("failed") ? "warning" : "info"} sx={{ mb: 2, fontSize: 14 }}>
+                {fingerprintStatus}
+              </Alert>
+            )}
+
             {/* Sign In Button */}
             <Button
               fullWidth
               type="submit"
               variant="contained"
+              disabled={isSubmitting}
               sx={{
                 height: 48,
                 textTransform: "none",
@@ -365,7 +437,15 @@ export default function LoginPage() {
                 "&:hover": { boxShadow: "none" },
               }}
             >
-              Sign In
+              {/* Sign In */}
+              {isSubmitting ? (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CircularProgress size={20} color="inherit" />
+                  <span>Signing in...</span>
+                </Box>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </Box>
         </Box>

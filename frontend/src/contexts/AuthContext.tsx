@@ -12,6 +12,7 @@ interface SessionData {
   sessionId: string;
   newDevice: boolean;
   newLocation: boolean;
+  fingerprint?: Record<string, unknown> | null;
 }
 
 interface AuthContextValue {
@@ -21,7 +22,7 @@ interface AuthContextValue {
   sessionId: string | null;
   isAuthenticated: boolean;
   loginError: string | null;
-  login: (username: string, password: string, newDevice: boolean, newLocation: boolean, keystrokeMetrics?: object) => boolean;
+  login: (username: string, password: string, newDevice: boolean, newLocation: boolean, keystrokeMetrics?: object, fingerprintData?: Record<string, unknown> | null) => boolean;
   logout: () => void;
   clearLoginError: () => void;
 }
@@ -64,7 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: string,
       newDevice: boolean,
       newLocation: boolean,
-      keystrokeMetrics?: object
+      keystrokeMetrics?: object,
+      fingerprintData?: Record<string, unknown> | null
     ): boolean => {
       const user = authenticate(username, password);
       if (!user) {
@@ -83,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const sessionId = createSessionId();
-      const data: SessionData = { user, sessionId, newDevice, newLocation };
+      const data: SessionData = { user, sessionId, newDevice, newLocation, fingerprint: fingerprintData ?? null };
 
       saveSession(data);
       setSessionState(data);
@@ -91,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       failedAttempts.current = 0;
 
       setSession(user.username, sessionId);
-      trackEvent("LOGIN", { newDevice, newLocation, username });
+      trackEvent("LOGIN", { newDevice, newLocation, username, fingerprint: fingerprintData ?? null  });
 
       if (keystrokeMetrics) {
         sendKeystrokeMetrics(keystrokeMetrics);
