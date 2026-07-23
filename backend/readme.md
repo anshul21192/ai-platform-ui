@@ -18,10 +18,14 @@ pip install -r requirements.txt
 Create a `.env` file in the `backend/` directory:
 ```env
 DATABASE_URL=sqlite:///./data/behaviour.db
-# (Optional) Credentials for AI service fallback overrides:
-GOOGLE_CLOUD_PROJECT_ID=your-gcp-project-id
+GOOGLE_CLOUD_PROJECT_ID=hack-team-test2026
 VERTEX_AI_LOCATION=us-central1
 ```
+
+> **Note on Hackathon Authentication & Vertex AI:**
+> - **Cloud Run / Cloud Compute**: Attach the Workload Service Account (`workload@hack-team-test2026.iam.gserviceaccount.com`). Vertex AI automatically authenticates via metadata ADC.
+> - **Local Development**: Run `gcloud auth application-default login` using your hackathon SSO account (`foo.bar.com@db-hackathon.com`). No JSON service account key files are used or required.
+
 
 ### 3. Run the Backend
 ```bash
