@@ -120,7 +120,7 @@ Emitted automatically by `NavigationTracker` on every route change. The action i
 | Action               | Trigger                           | Metadata                                                                                             |
 | -------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `LOGIN`              | Successful login                  | `{ newDevice, newLocation, username }`                                                               |
-| `KEYSTROKE_DYNAMICS` | Keystroke dynamics biometrics log | `{ averageDwellTime, averageFlightTime, typingSpeed, totalKeystrokes, backspaceCount, pauseCount }` |
+| `KEYSTROKE_DYNAMICS` | Keystroke dynamics biometrics log | `{ typingSpeed, totalKeystrokes, sessionDuration, dwell, flight, backspaceCount, pauseCount, burstiness, rolloverRate, coefficientOfVariation }` |
 | `LOGOUT`             | User clicks logout                | `{}`                                                                                                 |
 | `LOGIN_LOCKOUT`      | >3 failed login attempts          | `{ username, failedAttempts }`                                                                       |
 
@@ -209,6 +209,26 @@ On flush, events are stored in two places:
 ### Pre-Session Events
 
 Events like `LOGIN_LOCKOUT` occur before a session is established. These are tracked with placeholder values (`userId: "anonymous"`, `sessionId: "pre-session"`) and still flushed normally.
+
+### Keystroke Dynamics Biometrics Schema
+
+The `KEYSTROKE_DYNAMICS` telemetry event captures rich behavioral typing biometrics (`KeystrokeFeatures`) during login to assist the fraud detection model in identifying bots, credential stuffing, and unusual typing patterns.
+
+**Privacy & Security Goal**: Only aggregate statistics and distribution metrics ever leave the browser. Raw timestamps and literal character values are retained only in temporary memory during typing and are discarded immediately when features are computed upon form submission.
+
+The `metadata` payload sent inside `KEYSTROKE_DYNAMICS` includes:
+
+- **Overall Timing & Speed**: `typingSpeed` (characters per minute), `totalKeystrokes`, and `sessionDuration` (ms).
+- **Dwell Distributions (`dwell`)**: Key hold time statistics (`mean`, `stdDev`, `median`, `p95`, `min`, `max`, `sampleSize`).
+- **Flight Distributions (`flight`)**: Up-to-down latency statistics between key presses (`mean`, `stdDev`, `median`, `p95`, `min`, `max`, `sampleSize`).
+- **Error & Correction Signals**: `backspaceCount`, `deleteCount`, `backspaceRate` (per 100 keystrokes), and `correctionBursts` (consecutive correction groups).
+- **Pause & Hesitation Signals**: `pauseCount` (>2000ms threshold by default), `averagePauseDuration`, and `longestPause`.
+- **Rhythm & Bot Indicators**:
+  - `burstiness`: Goh-Barabasi parameter (`[-1, 1]`) measuring typing rhythm regularity.
+  - `rolloverRate`: Overlapping key presses per keystroke (indicates fluid two-hand physical typing).
+  - `coefficientOfVariation`: Flight standard deviation divided by mean (`stdDev / mean` — near-zero values indicate automated scripts).
+- **Category Counts (`keyCategoryDistribution`)**: Frequency counter of coarse key types (`letter`, `digit`, `punctuation`, `backspace`, `space`, etc.) without exposing actual typed characters.
+
 
 ### Demo Credentials
 
