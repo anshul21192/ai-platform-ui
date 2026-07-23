@@ -41,5 +41,6 @@ class SessionTelemetry(Base):
     recommendation = Column(String)
     action_taken = Column(String)
     is_blocked = Column(Boolean, default=False)
+    is_2fa_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)

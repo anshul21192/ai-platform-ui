@@ -131,10 +131,8 @@ This is especially useful for business stakeholders and audit teams.
 
 - `React` + `TypeScript` + `Vite`
 - `MUI` for UI components
-- `@mui/x-charts` for charts
-- New page: `frontend/src/pages/RiskDashboardPage.tsx`
-- Navigation route: `/risk-dashboard`
-- Sidebar menu item: `Risk Dashboard`
+- Admin component: `admin-frontend/src/components/RiskEngineShowcase.tsx`
+- Admin Tab: `Risk Engine Showcase` in Admin Portal (Port 5174)
 
 ### Backend
 

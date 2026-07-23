@@ -1,4 +1,3 @@
-// frontend/src/pages/RiskDashboardPage.tsx
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -30,8 +29,9 @@ import InfoIcon from "@mui/icons-material/Info";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import { fetchDashboardShowcase } from "../api/telemetryApi";
 
-export default function RiskDashboardPage() {
+export default function RiskEngineShowcase() {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
   const [showcaseData, setShowcaseData] = useState<any>(null);
@@ -42,13 +42,8 @@ export default function RiskDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/fraud/telemetry/dashboard-showcase");
-      if (res.ok) {
-        const data = await res.json();
-        setShowcaseData(data);
-      } else {
-        throw new Error(`Failed to load: HTTP ${res.status}`);
-      }
+      const data = await fetchDashboardShowcase();
+      setShowcaseData(data);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to connect to the FastAPI fraud engine.");
@@ -67,17 +62,18 @@ export default function RiskDashboardPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "grid", placeItems: "center", minHeight: "80vh" }}>
+      <Box sx={{ display: "grid", placeItems: "center", py: 8 }}>
         <CircularProgress />
+        <Typography color="text.secondary" sx={{ mt: 2 }}>Loading Risk Engine parameters...</Typography>
       </Box>
     );
   }
 
   if (error || !showcaseData) {
     return (
-      <Box sx={{ p: 4 }}>
+      <Box sx={{ p: 2 }}>
         <Alert severity="error" action={<Button color="inherit" onClick={loadData}>Retry</Button>}>
-          {error || "Could not retrieve backend telemetry data structures."}
+          {error || "Could not retrieve backend risk engine telemetry data structures."}
         </Alert>
       </Box>
     );
@@ -86,16 +82,16 @@ export default function RiskDashboardPage() {
   const { engine, stats, signalWeights, fraudPatterns, baselines } = showcaseData;
 
   return (
-    <Box sx={{ p: 4, display: "flex", flexDirection: "column", gap: 4 }}>
-      {/* Title */}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      {/* Title Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1.5 }}>
-            <SecurityIcon color="primary" sx={{ fontSize: 32 }} />
-            Risk & Fraud Engine Showcase
+          <Typography variant="h5" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1.5 }}>
+            <SecurityIcon color="primary" sx={{ fontSize: 28 }} />
+            Risk & Fraud Engine Specs
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5, maxWidth: 800 }}>
-            Standalone showcase of the backend security parameters, active SQLite statistics, evidence-based signal weights, and typologies.
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Real-time telemetry classification specs, DB telemetry totals, signal weight distributions, and threat typologies.
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadData} sx={{ textTransform: "none" }}>
@@ -158,19 +154,19 @@ export default function RiskDashboardPage() {
         </Grid>
       </Grid>
 
-      {/* Tabs */}
+      {/* Inner Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="Risk dashboard tabs">
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="Risk showcase tabs">
           <Tab icon={<InfoIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Engine Overview" sx={{ textTransform: "none", fontWeight: 600 }} />
-          <Tab icon={<FitnessCenterIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Evidence-Based Weights" sx={{ textTransform: "none", fontWeight: 600 }} />
+          <Tab icon={<FitnessCenterIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Signal Weights" sx={{ textTransform: "none", fontWeight: 600 }} />
           <Tab icon={<PsychologyIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="Typologies (Rules)" sx={{ textTransform: "none", fontWeight: 600 }} />
           <Tab icon={<AssignmentIcon sx={{ fontSize: 18 }} />} iconPosition="start" label="User Baselines" sx={{ textTransform: "none", fontWeight: 600 }} />
         </Tabs>
       </Box>
 
-      {/* Tab Panels */}
+      {/* Tab 0: Engine Overview */}
       {tabValue === 0 && (
-        <Paper variant="outlined" sx={{ p: 4, display: "flex", flexDirection: "column", gap: 3 }}>
+        <Paper variant="outlined" sx={{ p: 3, display: "flex", flexDirection: "column", gap: 3 }}>
           <Typography variant="h6" fontWeight={700}>Backend Classification Engine Specifications</Typography>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -203,16 +199,16 @@ export default function RiskDashboardPage() {
               <Box sx={{ p: 3, bgcolor: "grey.50", border: "1px dashed", borderColor: "divider", display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <Typography variant="subtitle1" fontWeight={700}>How Real-Time Session Blocking Works</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  1. **Browser Telemetry Ingestion**: Every user action (clicks, navigation, keyboard timing) is captured in a local event buffer and flushed to `/api/v1/fraud/telemetry/events`.
+                  1. <strong>Browser Telemetry Ingestion</strong>: Every user action (clicks, navigation, keystroke dynamics) is captured in a local event buffer and flushed to <code>/api/v1/fraud/telemetry/events</code>.
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  2. **Sequence Analysis**: The backend loads all historical telemetry logs for that session from SQLite and scans for multi-event sequences (e.g., direct settings navigation + alert disabled + transfer).
+                  2. <strong>Sequence Analysis</strong>: The backend loads all historical telemetry logs for that session from SQLite and scans for multi-event sequences.
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  3. **Dynamic Scoring**: The hybrid engine computes a risk index (0-100%). Overrides force a HIGH risk classification (&ge; 85%) for critical indicators like bot typing speed or alert guardrail removal.
+                  3. <strong>Dynamic Scoring</strong>: The hybrid engine computes a risk index (0-100%). Overrides force a HIGH risk classification (&ge; 85%) for critical indicators like bot typing speed or alert guardrail removal.
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  4. **Automatic Lockout**: If the score exceeds 80%, the session is flagged as `is_blocked = True`. Within 3 seconds, the browser polling loop detects the block, terminates the session, and triggers an immediate redirect.
+                  4. <strong>Automatic Lockout</strong>: If the score exceeds 80%, the session is flagged as <code>is_blocked = True</code>. Within 3 seconds, the browser polling loop detects the block and triggers an immediate lockout.
                 </Typography>
               </Box>
             </Grid>
@@ -220,6 +216,7 @@ export default function RiskDashboardPage() {
         </Paper>
       )}
 
+      {/* Tab 1: Signal Weights */}
       {tabValue === 1 && (
         <Paper variant="outlined" sx={{ p: 0 }}>
           <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -258,6 +255,7 @@ export default function RiskDashboardPage() {
         </Paper>
       )}
 
+      {/* Tab 2: Typologies */}
       {tabValue === 2 && (
         <Grid container spacing={3}>
           {fraudPatterns.map((pattern: any) => (
@@ -286,6 +284,7 @@ export default function RiskDashboardPage() {
         </Grid>
       )}
 
+      {/* Tab 3: Baselines */}
       {tabValue === 3 && (
         <Grid container spacing={3}>
           {Object.entries(baselines).map(([userId, profile]: any) => (

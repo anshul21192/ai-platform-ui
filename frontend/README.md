@@ -43,7 +43,7 @@ If `is_blocked = true` is detected:
 
 ## 📊 Risk Showcase Dashboard
 
-Accessible in the client sidebar at `/risk-dashboard`, this page loads live details directly from the backend to showcase:
+Accessible in the **Admin Control Center** (Port 5174) under the **"Risk Engine Showcase"** tab, this view loads live details directly from the backend to showcase:
 * **Active Database Stats**: Ingested events, unique tracked sessions, escalated audit counts.
 * **Signal Weights**: Threat indicators and their rule-based fallback weights.
 * **Typologies**: Deep behavioral patterns matched by the system (e.g. Account Takeover, Mule networks, exfiltration).
