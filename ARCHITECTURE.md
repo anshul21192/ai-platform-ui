@@ -171,7 +171,7 @@ podman compose version
 
 ### Command Reference
 
-From the project root:
+From the project roots:
 
 | Action            | Docker                      | Podman                      |
 | ----------------- | --------------------------- | --------------------------- |

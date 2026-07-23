@@ -6,7 +6,7 @@ FROM node:lts-slim AS builder
 WORKDIR /app
 
 # Install pnpm (pin version instead of latest)
-RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
+RUN npm i -g pnpm@11.15.1
 
 # Copy dependency files first
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
