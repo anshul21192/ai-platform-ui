@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { FpjsProvider } from "@fingerprintjs/fingerprintjs-pro-react";
 import theme from "./theme/theme";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -18,6 +19,7 @@ import { BeneficiaryProvider } from "./contexts/BeneficiaryContext";
 import { logNavigation } from "./utils/eventLogger";
 import RiskDashboardPage from "./pages/RiskDashboardPage";
 
+const fingerprintApiKey = "bYcOv9gpXAX0S0wYP7eq" as string | undefined;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -40,7 +42,7 @@ function NavigationTracker() {
 }
 
 export default function App() {
-  return (
+  const appContent = (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
@@ -70,5 +72,16 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+  );
+
+   return (
+    <FpjsProvider
+      loadOptions={{
+        apiKey: fingerprintApiKey ?? "demo-public-key",
+        region: "ap",
+      }}
+    >
+      {appContent}
+    </FpjsProvider>
   );
 }
