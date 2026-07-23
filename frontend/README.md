@@ -1,247 +1,50 @@
-# AI Platform UI
+# 💳 Client Banking App (React Frontend)
 
-A React-based frontend for an AI-powered behavioral fraud detection platform. Captures semantic user interaction events in a mock banking UI and feeds them to a Node.js + Vertex AI (Gemini) backend for real-time risk scoring via a RAG approach.
+A React + Vite + TypeScript frontend application simulating a retail banking interface. It is instrumented with event logging to track user behavior, keystroke dynamics, and navigation sequences in real-time.
 
-## Tech Stack
+---
 
-- **React 19** with TypeScript
-- **Vite** for dev server and bundling
-- **MUI (Material UI)** for component library and theming
-- **React Router** for client-side routing
-- **MSW** for API mocking during development
-- **oxlint** for linting
+## 🚀 Getting Started
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- pnpm
-
-### Install dependencies
-
+### 1. Install Dependencies
+Run from the `frontend/` directory (or use workspace installation at the root):
 ```bash
 pnpm install
 ```
 
-### Start development server
-
+### 2. Start Development Server
 ```bash
 pnpm dev
 ```
+The application will be available locally at `http://localhost:5173`.
 
-The app will be available at `http://localhost:5173`.
+---
 
-### Build for production
+## 📡 Live Telemetry & Security Protection
 
-```bash
-pnpm build
-```
+### 1. Telemetry Capture
+The client captures user interactions via `frontend/src/utils/eventLogger.ts` and buffers them.
+* **Regular Events**: Navigation views, tab clicks, and inputs are buffered and flushed in batches.
+* **Sensitive Events**: Sensitive actions (e.g. `TRANSFER`, `ADD_PAYEE`, `TOGGLE_TRANSACTION_ALERTS`, `DELETE_BENEFICIARY`) trigger an **immediate** flush to `/api/v1/fraud/telemetry/events`.
+* **Keystroke Dynamics**: Typing speed, backspace rates, pause durations, and flight times are recorded on login inputs to identify bots or automated script injection.
 
-### Preview production build
+### 2. Real-Time Blocking & Protective Logout
+Inside `frontend/src/contexts/AuthContext.tsx`, two concurrent protection loops monitor session status:
+1. **Background Polling**: Queries the backend endpoint `/session/{session_id}/status` every 3 seconds.
+2. **Immediate Event Callbacks**: Inspects response payloads returned from immediate telemetry flushes.
 
-```bash
-pnpm preview
-```
+If `is_blocked = true` is detected:
+* A browser `alert()` notifies the user of session termination.
+* The local session is cleared, credentials are deleted, and `logout()` is triggered immediately.
+* A security flag and the risk score are saved in `localStorage`.
+* The user is redirected to the Login Screen, which displays a bold red alert card: `"SECURITY ALERT: Your previous session was terminated due to suspicious behavioral fraud activities. (Risk Score: X%)"`.
 
-### Lint
+---
 
-```bash
-pnpm lint
-```
+## 📊 Risk Showcase Dashboard
 
-## Pages
-
-| Route                     | Description                      |
-| ------------------------- | -------------------------------- |
-| `/`                       | Dashboard with activity summary  |
-| `/login`                  | Login page                       |
-| `/beneficiaries`          | List and manage beneficiaries    |
-| `/manage-beneficiary`     | Add or edit a beneficiary        |
-| `/transactions`           | View and export transactions     |
-| `/payments/send-money`    | Send money to a beneficiary      |
-| `/payments/request-money` | Request money from a beneficiary |
-| `/settings`               | User settings and security       |
-| `/audit-logs`             | Event log viewer and simulator   |
-
-## Event Logging & Telemetry
-
-The frontend captures every meaningful user interaction as a structured event, buffers them in memory, and flushes them to a backend endpoint for behavioral fraud detection.
-
-### Event Schema
-
-Every event conforms to this structure:
-
-```json
-{
-  "userId": "U1023",
-  "sessionId": "a1b2c3d4-...",
-  "seq": 5,
-  "action": "TRANSFER",
-  "ts": 1784571124942,
-  "dwellFromPrevMs": 4023,
-  "metadata": {
-    "amount": "25000",
-    "currency": "USD",
-    "recipientName": "Offshore Account"
-  }
-}
-```
-
-| Field             | Type                  | Description                                      |
-| ----------------- | --------------------- | ------------------------------------------------ |
-| `userId`          | `string`              | Synthetic user ID (`U1023`, `U9999`)             |
-| `sessionId`       | `string`              | UUID generated per login session                 |
-| `seq`             | `number`              | Monotonically increasing sequence number         |
-| `action`          | `string`              | The event name (see captured actions below)      |
-| `ts`              | `number`              | Unix timestamp in milliseconds                   |
-| `dwellFromPrevMs` | `number`              | Time since previous event in milliseconds        |
-| `metadata`        | `Record<string, any>` | Action-specific payload (see per-action details) |
-
-### What Is Captured
-
-#### Navigation Events (automatic on route change)
-
-Emitted automatically by `NavigationTracker` on every route change. The action is derived from the route via a mapping table.
-
-| Route                     | Action Emitted            | Metadata   |
-| ------------------------- | ------------------------- | ---------- |
-| `/`                       | `VIEW_DASHBOARD`          | `{ path }` |
-| `/transactions`           | `VIEW_TRANSACTIONS`       | `{ path }` |
-| `/beneficiaries`          | `VIEW_BENEFICIARIES`      | `{ path }` |
-| `/manage-beneficiary`     | `VIEW_MANAGE_BENEFICIARY` | `{ path }` |
-| `/settings`               | `VIEW_SETTINGS`           | `{ path }` |
-| `/audit-logs`             | `VIEW_AUDIT_LOGS`         | `{ path }` |
-| `/payments/send-money`    | `VIEW_SEND_MONEY`         | `{ path }` |
-| `/payments/request-money` | `VIEW_REQUEST_MONEY`      | `{ path }` |
-
-#### Authentication & Biometric Events
-
-| Action               | Trigger                           | Metadata                                                                                             |
-| -------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `LOGIN`              | Successful login                  | `{ newDevice, newLocation, username }`                                                               |
-| `KEYSTROKE_DYNAMICS` | Keystroke dynamics biometrics log | `{ typingSpeed, totalKeystrokes, sessionDuration, dwell, flight, backspaceCount, pauseCount, burstiness, rolloverRate, coefficientOfVariation }` |
-| `LOGOUT`             | User clicks logout                | `{}`                                                                                                 |
-| `LOGIN_LOCKOUT`      | >3 failed login attempts          | `{ username, failedAttempts }`                                                                       |
-
-#### Beneficiary Events
-
-| Action               | Trigger                    | Metadata                             |
-| -------------------- | -------------------------- | ------------------------------------ |
-| `ADD_PAYEE`          | Save new beneficiary       | `{ payeeName, accountNumber }`       |
-| `EDIT_BENEFICIARIES` | Save edited beneficiary    | `{ beneficiaryId, beneficiaryName }` |
-| `DELETE_BENEFICIARY` | Confirm delete beneficiary | `{ beneficiaryId, beneficiaryName }` |
-
-#### Payment Events
-
-| Action          | Trigger                   | Metadata                                             |
-| --------------- | ------------------------- | ---------------------------------------------------- |
-| `TRANSFER`      | Submit send money form    | `{ amount, currency, recipientName, accountNumber }` |
-| `REQUEST_MONEY` | Submit request money form | `{ amount, currency, recipientName, accountNumber }` |
-
-#### Settings Events
-
-| Action                      | Trigger                          | Metadata                                |
-| --------------------------- | -------------------------------- | --------------------------------------- |
-| `CHANGE_EMAIL`              | (Not yet wired in UI)            | `{ newEmail }`                          |
-| `CHANGE_MOBILE`             | (Not yet wired in UI)            | `{ newPhone }`                          |
-| `CHANGE_PASSWORD`           | Click "Update Password"          | `{ hasNewPassword }`                    |
-| `UPDATE_PROFILE`            | Click "Save Changes" in Profile  | `{ email, phone, firstName, lastName }` |
-| `TOGGLE_TRANSACTION_ALERTS` | Toggle transaction alerts switch | `{ enabled }`                           |
-
-#### Bulk Operations
-
-| Action          | Trigger                            | Metadata          |
-| --------------- | ---------------------------------- | ----------------- |
-| `BULK_DOWNLOAD` | Click "Export All" on transactions | `{ recordCount }` |
-
-#### Navigation Anomaly Detection
-
-| Action                | Trigger                                                                  | Metadata                                             |
-| --------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
-| `DIRECT_ROUTE_ACCESS` | User navigates to a sensitive route without visiting a valid predecessor | `{ targetRoute, previousRoute, navHistory, reason }` |
-
-### When Events Are Buffered
-
-All events are pushed into an in-memory buffer as they occur. The buffer accumulates events throughout the session.
-
-### When Events Are Flushed
-
-Events are flushed (sent to backend and persisted) in these scenarios:
-
-| Scenario             | Description                                                           |
-| -------------------- | --------------------------------------------------------------------- |
-| **Sensitive action** | Any action in the `SENSITIVE_ACTIONS` set triggers an immediate flush |
-| **Logout**           | `clearSession()` calls `flush()` before clearing state                |
-| **Session clear**    | `clearEvents()` flushes then wipes localStorage                       |
-
-### Sensitive Actions (trigger immediate flush)
-
-```
-DELETE_BENEFICIARY, EDIT_BENEFICIARIES, ADD_PAYEE, BULK_DOWNLOAD,
-TRANSFER, REQUEST_MONEY, CHANGE_EMAIL, CHANGE_MOBILE, CHANGE_PASSWORD,
-TOGGLE_TRANSACTION_ALERTS, LOGIN_LOCKOUT
-```
-
-### Flush Endpoint
-
-Events are POSTed to:
-
-```
-POST /api/v1/fraud/telemetry/events
-Content-Type: application/json
-
-{
-  "sessionId": "a1b2c3d4-...",
-  "events": [ /* AppEvent[] */ ]
-}
-```
-
-During development, this is mocked via MSW which logs the payload to the console. When a real backend is available, the MSW handler should be removed.
-
-### Dual Persistence
-
-On flush, events are stored in two places:
-
-1. **localStorage** (`vault_bank_events` key) — Retains up to 200 events. Used by the Audit Logs page to display event history in the UI.
-2. **POST to backend** — Sent to `/api/v1/fraud/telemetry/events` for risk scoring by the Vertex AI pipeline.
-
-### Pre-Session Events
-
-Events like `LOGIN_LOCKOUT` occur before a session is established. These are tracked with placeholder values (`userId: "anonymous"`, `sessionId: "pre-session"`) and still flushed normally.
-
-### Keystroke Dynamics Biometrics Schema
-
-The `KEYSTROKE_DYNAMICS` telemetry event captures rich behavioral typing biometrics (`KeystrokeFeatures`) during login to assist the fraud detection model in identifying bots, credential stuffing, and unusual typing patterns.
-
-**Privacy & Security Goal**: Only aggregate statistics and distribution metrics ever leave the browser. Raw timestamps and literal character values are retained only in temporary memory during typing and are discarded immediately when features are computed upon form submission.
-
-The `metadata` payload sent inside `KEYSTROKE_DYNAMICS` includes:
-
-- **Overall Timing & Speed**: `typingSpeed` (characters per minute), `totalKeystrokes`, and `sessionDuration` (ms).
-- **Dwell Distributions (`dwell`)**: Key hold time statistics (`mean`, `stdDev`, `median`, `p95`, `min`, `max`, `sampleSize`).
-- **Flight Distributions (`flight`)**: Up-to-down latency statistics between key presses (`mean`, `stdDev`, `median`, `p95`, `min`, `max`, `sampleSize`).
-- **Error & Correction Signals**: `backspaceCount`, `deleteCount`, `backspaceRate` (per 100 keystrokes), and `correctionBursts` (consecutive correction groups).
-- **Pause & Hesitation Signals**: `pauseCount` (>2000ms threshold by default), `averagePauseDuration`, and `longestPause`.
-- **Rhythm & Bot Indicators**:
-  - `burstiness`: Goh-Barabasi parameter (`[-1, 1]`) measuring typing rhythm regularity.
-  - `rolloverRate`: Overlapping key presses per keystroke (indicates fluid two-hand physical typing).
-  - `coefficientOfVariation`: Flight standard deviation divided by mean (`stdDev / mean` — near-zero values indicate automated scripts).
-- **Category Counts (`keyCategoryDistribution`)**: Frequency counter of coarse key types (`letter`, `digit`, `punctuation`, `backspace`, `space`, etc.) without exposing actual typed characters.
-
-
-### Demo Credentials
-
-| Username            | Password  | User ID | Role     |
-| ------------------- | --------- | ------- | -------- |
-| `john@vault.bank`   | `demo123` | `U1023` | Normal   |
-| `attacker@evil.com` | `stolen`  | `U9999` | Attacker |
-
-### Audit Logs Simulator
-
-The `/audit-logs` page includes two simulation tools:
-
-- **Simulate Normal** — Generates a typical user session: login (known device) → navigation → small transfer → notification toggle → logout.
-- **Simulate Fraud** — Generates an account takeover session: login (new device + new location) → settings changes → add unknown payee → bulk download → large transfer → logout.
-
-Events appear in the viewer sorted by sequence number (ascending) and can be cleared manually.
+Accessible in the client sidebar at `/risk-dashboard`, this page loads live details directly from the backend to showcase:
+* **Active Database Stats**: Ingested events, unique tracked sessions, escalated audit counts.
+* **Signal Weights**: Threat indicators and their rule-based fallback weights.
+* **Typologies**: Deep behavioral patterns matched by the system (e.g. Account Takeover, Mule networks, exfiltration).
+* **Baselines**: Persona profiles detailing normal activity limits.

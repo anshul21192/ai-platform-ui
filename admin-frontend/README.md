@@ -1,32 +1,49 @@
-# React + TypeScript + Vite
+# 🛡️ Security Analyst Hub (Admin Dashboard)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A React + Vite + TypeScript administration portal designed for security analysts to monitor active user sessions, analyze threat risk scores in real-time, trigger overrides, and simulate threat patterns.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Getting Started
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### 1. Install Dependencies
+Run from the `admin-frontend/` directory (or use workspace installation at the root):
+```bash
+pnpm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### 2. Start Development Server
+```bash
+pnpm dev
+```
+The application will be available locally at `http://localhost:5174`.
+
+---
+
+## 📊 Dashboard Modules & Features
+
+### 1. Analytics Overview
+* Displays key database metrics (Total Monitored Sessions, Ingested Telemetry Logs, Active Session Blocks, Escalated Audits).
+* Includes visualization charts showing anomaly distribution and overall threat level ratios.
+
+### 2. Active Session Threat Log
+* Lists all active and historical sessions sorted by activity.
+* Shows the calculated risk score (green for low, orange for medium, red for high).
+* Displays tags for detected anomalies (e.g. `GUARDRAIL_REMOVAL_BEFORE_TRANSFER`, `DIRECT_ROUTE_ACCESS`, `KEYSTROKE_BOT_SPEED`).
+* Provides **Block** and **Unblock** manual override buttons to enforce immediate security lockout or reset a cleared user.
+* Refreshes silently in the background every 3 seconds to capture live behavior updates.
+
+### 3. Chronological Session Inspector (Drawer)
+* Clicking **Inspect** on any session opens a side drawer showing a complete timeline of that session.
+* Lists every user action in sequence, complete with dwell times, flight times, and metadata payloads (e.g. transfer amounts).
+
+### 4. Interactive Live Attack Simulator
+* Located under the **Threat Intelligence & Simulator** tab.
+* Allows analysts to inject simulated user sequences directly to test threat detection:
+  * **Inject Bot Script**: Simulates a scraper collecting audit logs at super-human typing speed.
+  * **Inject Account Takeover**: Simulates a login from a new device/location followed by direct settings routing, transaction alerts disable, and a transfer.
+
+### 5. Escalated Security Audits (Incidents)
+* Lists escalated incidents requiring manual review and resolution.
+* Displays the **Escalation Time** (the exact timestamp when the session was blocked) and status.
+* Allows analysts to resolve audit files once a threat is mitigated.

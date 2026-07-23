@@ -1,194 +1,62 @@
-# 🔐 Real-Time AI Behavioral Anomaly & Fraud Detection Engine
+# 🔐 Real-Time Anomaly & Fraud Detection Engine (FastAPI Backend)
 
-An enterprise-grade backend system for detecting fraudulent behavior in banking applications using AI-powered event sequence analysis.
+An enterprise-grade backend system for detecting fraudulent behavior in banking applications using rule-based heuristics and AI-powered sequence analysis.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-### 1️⃣ Clone Repository
-```bash
-git clone https://github.com/anshul21192/ai-platform-service.git
-cd behaviour-anamaly-poc
-```
-
-### 2️⃣ Activate venv
-On macOS / Linux:
+### 1. Install Dependencies
+Ensure you have activated your Python virtual environment, then install requirements:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-```
-On Windows:
-```cmd
-python -m venv venv
-venv\Scripts\activate
-```
-
-### 2️⃣ Install Dependencies
-```bash
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Configure Environment
-
-Create a `.env` file in the project root with:
-
+### 2. Configure Environment
+Create a `.env` file in the `backend/` directory:
 ```env
+DATABASE_URL=sqlite:///./data/behaviour.db
+# (Optional) Credentials for AI service fallback overrides:
 GOOGLE_CLOUD_PROJECT_ID=your-gcp-project-id
 VERTEX_AI_LOCATION=us-central1
-DATABASE_URL=sqlite:///./data/behaviour.db
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-
-# use this for gemini api
-GEMINI_API_KEY=
-# use this for vertex ai
-
-
-(get the account key json and store at the root backend folder )
-$env:GOOGLE_APPLICATION_CREDENTIALS="c:\Users\shagun\Downloads\ai-platform-ui\backend\service-account-key.json"
-GOOGLE_CLOUD_PROJECT_ID=
-VERTEX_AI_LOCATION=
-OPENROUTER_API_KEY=
-
 ```
 
-
-
-
-### 4️⃣ Setup Google Cloud Authentication
-```bash
-gcloud auth application-default login
-```
-
-### 5️⃣ Run the Server
+### 3. Run the Backend
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
-
-**Server is now running:**
-- API: `http://localhost:8000`
-- Swagger Docs: `http://localhost:8000/docs`
+- **API Base URL**: `http://localhost:8000`
+- **Interactive Swagger Docs**: `http://localhost:8000/docs`
 
 ---
 
-## 📡 Test the API
+## 💾 Database Schema (SQLite)
 
-### Example: Submit Events for Fraud Analysis
+The engine stores telemetry metrics in `data/behaviour.db` across three main tables:
 
-```bash
-{
-  "sessionId": "session-testuser-low-01",
-  "events": [
-    {
-      "userId": "testuser",
-      "sessionId": "session-testuser-low-01",
-      "seq": 1,
-      "action": "LOGIN",
-      "ts": 1784600000000,
-      "dwellFromPrevMs": 0,
-      "metadata": { "newDevice": false, "newLocation": false }
-    },
-    {
-      "userId": "testuser",
-      "sessionId": "session-testuser-low-01",
-      "seq": 2,
-      "action": "VIEW_DASHBOARD",
-      "ts": 1784600003000,
-      "dwellFromPrevMs": 3000,
-      "metadata": {}
-    },
-    {
-      "userId": "testuser",
-      "sessionId": "session-testuser-low-01",
-      "seq": 3,
-      "action": "VIEW_TRANSACTIONS",
-      "ts": 1784600007000,
-      "dwellFromPrevMs": 4000,
-      "metadata": {}
-    }
-  ]
-}
-
-```
-
-**Response:**
-```json
-{
-  "status": "ACCEPTED",
-  "message": "Telemetry events ingested and analyzed",
-  "eventsProcessed": 3,
-  "riskAssessment": {
-    "risk_score": 10,
-    "risk_level": "LOW",
-    "anomalies": [],
-    "recommendation": "No immediate action required.",
-    "action_taken": "Logged entry. No anomaly action requirements.",
-    "reason": "The user has no established history, and the current session shows no anomalies or sensitive actions. The transfer amount is $0.0, which is consistent with normal activity for a new user. Therefore, the risk score is low."
-  }
-}
-
-```
-
+1. **`telemetry_events`**: Stores raw event logs (user actions, timestamps, dwell times, and JSON metadata payloads).
+2. **`session_telemetry`**: Aggregates metrics per session (event counts, detected anomaly lists, computed risk scores, and `is_blocked` flags).
+3. **`incidents`**: Tracks escalated audits that require manual review or admin resolution.
 
 ---
 
-## ⚙️ Environment Variables
+## 📡 Core API Endpoints
 
-| Variable | Example | Description |
-|----------|---------|-------------|
-| `GOOGLE_CLOUD_PROJECT_ID` | `my-project-123` | GCP project ID for Vertex AI |
-| `VERTEX_AI_LOCATION` | `us-central1` | Vertex AI region |
-| `DATABASE_URL` | `sqlite:///./data/behaviour.db` | SQLite database path |
-| `SMTP_SERVER` | `smtp.gmail.com` | Email server |
-| `SMTP_PORT` | `587` | SMTP port |
-| `SMTP_USERNAME` | `your-email@gmail.com` | Gmail address |
-| `SMTP_PASSWORD` | `xxxx xxxx xxxx xxxx` | Gmail App Password |
+### 1. Telemetry Ingestion & Real-Time Analysis
+* **Route**: `POST /api/v1/fraud/telemetry/events`
+* **Payload**: `TelemetryFlushRequest` containing the `sessionId` and a list of telemetry `events`.
+* **Behavior**: Saves incoming events in the database, queries **all historical events in the current session**, evaluates them for sequence anomalies (e.g. guardrail removal before transfer), and updates the session's overall risk score. Returns the latest risk assessment.
 
-### Get Gmail App Password:
-1. Go to [Google Account Security](https://myaccount.google.com/security)
-2. Enable 2-Step Verification
-3. Search "App passwords"
-4. Select Mail → Windows Computer
-5. Copy the 16-character password → paste in `.env`
+### 2. Session Blocking Status
+* **Route**: `GET /api/v1/fraud/telemetry/session/{session_id}/status`
+* **Response**: Returns the current `is_blocked`, `risk_score`, `risk_level`, and list of `anomalies` for a session. Polled by the client app to trigger real-time session termination.
 
-### Get GCP Project ID:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select or create a project
-3. Copy the **Project ID**
-4. Enable Vertex AI API
+### 3. Standalone Risk Showcase
+* **Route**: `GET /api/v1/fraud/telemetry/dashboard-showcase`
+* **Response**: Exposes the engine's internal setup (evidence-based signal weights, user persona baselines, and active typologies) and live database stats for developer dashboards.
 
----
-
-## 🧪 API Endpoints
-
-**POST** `/api/v1/fraud/telemetry/events` - Submit telemetry events for analysis
-
-**GET** `/api/v1/fraud/telemetry/events/{session_id}` - Get events by session
-
-**GET** `/api/v1/fraud/telemetry/sessions/{user_id}` - Get user sessions
-
----
-
-
-
-
-## 🐛 Troubleshooting
-
-**Port 8000 already in use:**
-```bash
-python -m uvicorn app.main:app --reload --port 8001
-```
-
-**Authentication error:**
-```bash
-gcloud auth application-default login
-```
-
-**Install dependencies issue:**
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
+### 4. Admin Override Controllers
+* **Block Session**: `POST /api/v1/fraud/telemetry/session/{session_id}/block` (Overrides status to blocked and generates an escalated audit incident).
+* **Unblock Session**: `POST /api/v1/fraud/telemetry/session/{session_id}/unblock` (Clears block flags and marks escalated incidents as resolved).
