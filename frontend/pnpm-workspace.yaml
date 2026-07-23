@@ -1,3 +1,0 @@
-allowBuilds:
-  '@fingerprintjs/fingerprintjs-pro-react': true
-  msw: true

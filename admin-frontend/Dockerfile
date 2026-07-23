@@ -19,18 +19,18 @@ ENV CI=true
 RUN pnpm install --no-frozen-lockfile
 
 # Copy application source
-COPY frontend/ ./frontend/
+COPY admin-frontend/ ./admin-frontend/
 
 # Build application
-RUN pnpm --filter ai-platform-ui exec vite build
+RUN pnpm --filter admin-frontend exec vite build
 
 # -----------------------------
 # Stage 2: Serve with Nginx
 # -----------------------------
 FROM nginx:stable-alpine
 
-COPY --from=builder /app/frontend/dist /usr/share/nginx/html
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/admin-frontend/dist /usr/share/nginx/html
+COPY admin-frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
