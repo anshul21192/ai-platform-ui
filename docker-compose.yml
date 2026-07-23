@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   backend:
     build:
@@ -13,10 +11,20 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  admin-frontend:
+    build:
+      context: .
+      dockerfile: admin-frontend/Dockerfile
+    ports:
+      - "5174:80"
     depends_on:
       - backend
     restart: unless-stopped

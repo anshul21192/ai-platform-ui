@@ -1,3 +1,10 @@
 packages:
   - "frontend"
   - "admin-frontend"
+
+allowBuilds:
+  '@fingerprintjs/fingerprintjs-pro-react': true
+  lefthook: true
+  msw: true
+
+trustLockfile: true
